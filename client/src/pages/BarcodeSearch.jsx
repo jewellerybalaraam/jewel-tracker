@@ -23,7 +23,7 @@ function BarcodeSearch() {
         customBarcode || barcode;
 
       const res = await axios.get(
-        `http://localhost:5000/api/transactions/barcode/${code}`
+        `${import.meta.env.VITE_API_URL}/api/transactions/barcode/${code}`
       );
 
       setResults(res.data);
