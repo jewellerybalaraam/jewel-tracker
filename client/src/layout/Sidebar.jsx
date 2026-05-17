@@ -45,6 +45,11 @@ function Sidebar() {
       path: "/customer-history",
       icon: <FaHistory />,
     },
+    {
+  name: "Upload Inventory",
+  path: "/upload-inventory",
+  icon: <FaPlusCircle />,
+}
   ];
 
   return (

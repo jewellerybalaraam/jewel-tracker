@@ -11,6 +11,7 @@ import NewTransaction from "./pages/NewTransaction";
 import Transactions from "./pages/Transactions";
 import BarcodeSearch from "./pages/BarcodeSearch";
 import CustomerHistory from "./pages/CustomerHistory";
+import InventoryUpload from "./pages/InventoryUpload";
 
 function App() {
 
@@ -25,6 +26,10 @@ function App() {
             index
             element={<Dashboard />}
           />
+          <Route
+  path="/upload-inventory"
+  element={<InventoryUpload />}
+/>
 
           <Route
             path="new"

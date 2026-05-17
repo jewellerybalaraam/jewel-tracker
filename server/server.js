@@ -1,6 +1,7 @@
 const express = require("express");
 const mongoose = require("mongoose");
 const cors = require("cors");
+const inventoryRoutes = require("./routes/inventoryRoutes");
 require("dotenv").config();
 
 const transactionRoutes = require("./routes/transactionRoutes");
@@ -11,6 +12,7 @@ app.use(cors());
 app.use(express.json());
 
 app.use("/api/transactions", transactionRoutes);
+app.use("/api/inventory", inventoryRoutes);
 
 app.get("/", (req, res) => {
   res.send("Jewel Tracker API Running");

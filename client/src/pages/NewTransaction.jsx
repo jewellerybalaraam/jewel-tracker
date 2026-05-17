@@ -1,6 +1,7 @@
 import { useState } from "react";
 import axios from "axios";
 import { Scanner } from "@yudiel/react-qr-scanner";
+import OCRScanner from "../components/OCRScanner";
 
 function NewTransaction() {
 
@@ -35,6 +36,36 @@ function NewTransaction() {
 
     setItems(updated);
   };
+
+  const fetchInventoryData = async (
+  barcode
+) => {
+
+  try {
+
+    const res = await axios.get(
+      `${import.meta.env.VITE_API_URL}/api/inventory/${barcode}`
+    );
+
+    const data = res.data;
+
+    setProductName(data.productName);
+
+    setItems([
+      {
+        barcode: data.barcode,
+        weight: data.weight,
+      },
+    ]);
+
+    setTotalPcs(data.pcs || 0);
+
+    setTotalWeight(data.weight || 0);
+
+  } catch (error) {
+    console.log(error);
+  }
+};
 
   const addRow = () => {
 
@@ -213,6 +244,20 @@ function NewTransaction() {
     }
   }}
   className="w-full p-4 rounded-xl bg-white/10 border border-white/20 outline-none"
+/>
+
+<OCRScanner
+  onDetected={(barcode) => {
+
+    const updated = [...items];
+
+    updated[index].barcode =
+      barcode;
+
+    setItems(updated);
+
+    fetchInventoryData(barcode);
+  }}
 />
 
                   <input
