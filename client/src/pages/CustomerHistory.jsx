@@ -16,7 +16,7 @@ function CustomerHistory() {
     try {
 
       let url =
-        `http://localhost:5000/api/transactions/customer/${customerName}`;
+        `${import.meta.env.VITE_API_URL}/api/transactions/customer/${customerName}`;
 
       if (fromDate && toDate) {
 
