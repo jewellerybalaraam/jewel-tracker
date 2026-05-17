@@ -204,18 +204,18 @@ function NewTransaction() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
 
                   <input
-                    type="text"
-                    placeholder="Barcode"
-                    className="p-4 rounded-2xl bg-black/30 backdrop-blur-lg border border-white/10"
-                    value={item.barcode}
-                    onChange={(e) =>
-                      handleItemChange(
-                        index,
-                        "barcode",
-                        e.target.value
-                      )
-                    }
-                  />
+  type="text"
+  value={barcode}
+  onChange={(e) => setBarcode(e.target.value)}
+  placeholder="Scan Barcode"
+  autoFocus
+  onKeyDown={(e) => {
+    if (e.key === "Enter") {
+      handleBarcodeSearch();
+    }
+  }}
+  className="w-full p-4 rounded-xl bg-white/10 border border-white/20 outline-none"
+/>
 
                   <input
                     type="number"

@@ -43,14 +43,18 @@ function BarcodeSearch() {
       <div className="flex flex-col md:flex-row gap-4 mb-6">
 
         <input
-          type="text"
-          placeholder="Enter Barcode"
-          className="flex-1 p-4 rounded-2xl bg-white/10 backdrop-blur-lg border border-white/10"
-          value={barcode}
-          onChange={(e) =>
-            setBarcode(e.target.value)
-          }
-        />
+  type="text"
+  value={barcode}
+  onChange={(e) => setBarcode(e.target.value)}
+  placeholder="Scan Barcode"
+  autoFocus
+  onKeyDown={(e) => {
+    if (e.key === "Enter") {
+      handleBarcodeSearch();
+    }
+  }}
+  className="w-full p-4 rounded-xl bg-white/10 border border-white/20 outline-none"
+/>
 
         <button
           onClick={() =>
