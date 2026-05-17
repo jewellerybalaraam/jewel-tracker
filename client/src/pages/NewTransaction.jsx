@@ -117,8 +117,6 @@ function NewTransaction() {
     } catch (error) {
 
       console.log(error);
-
-      alert("Error");
     }
   };
 
