@@ -1,28 +1,57 @@
 import { useState } from "react";
 import axios from "axios";
-import { Scanner } from "@yudiel/react-qr-scanner";
 import OCRScanner from "../components/OCRScanner";
 
 function NewTransaction() {
 
-  const [customerName, setCustomerName] = useState("");
+  const [customerName, setCustomerName] =
+    useState("");
 
-  const [productName, setProductName] = useState("");
+  const [productName, setProductName] =
+    useState("");
 
-  const [mode, setMode] = useState("barcode");
+  const [mode, setMode] =
+    useState("barcode");
 
-  const [items, setItems] = useState([
-    {
-      barcode: "",
-      weight: "",
-    },
-  ]);
+  const [items, setItems] =
+    useState([
+      {
+        barcode: "",
+        weight: "",
+        status: "PENDING",
+      },
+    ]);
 
-  const [totalWeight, setTotalWeight] = useState("");
+  const [totalPieces, setTotalPieces] =
+    useState(0);
 
-  const [totalPieces, setTotalPieces] = useState("");
+  const [totalWeight, setTotalWeight] =
+    useState(0);
 
-  const [scannerIndex, setScannerIndex] = useState(null);
+  const [loading, setLoading] =
+    useState(false);
+
+  const addItem = () => {
+
+    setItems([
+      ...items,
+
+      {
+        barcode: "",
+        weight: "",
+        status: "PENDING",
+      },
+    ]);
+  };
+
+  const removeItem = (index) => {
+
+    const updated = [...items];
+
+    updated.splice(index, 1);
+
+    setItems(updated);
+  };
 
   const handleItemChange = (
     index,
@@ -38,112 +67,39 @@ function NewTransaction() {
   };
 
   const fetchInventoryData = async (
-  barcode
-) => {
-
-  try {
-
-    const res = await axios.get(
-      `${import.meta.env.VITE_API_URL}/api/inventory/${barcode}`
-    );
-
-    const data = res.data;
-
-    setProductName(data.productName);
-
-    setItems([
-      {
-        barcode: data.barcode,
-        weight: data.weight,
-      },
-    ]);
-
-    setTotalPcs(data.pcs || 0);
-
-    setTotalWeight(data.weight || 0);
-
-  } catch (error) {
-    console.log(error);
-  }
-};
-
-  const addRow = () => {
-
-    setItems([
-      ...items,
-      {
-        barcode: "",
-        weight: "",
-      },
-    ]);
-  };
-
-  const removeRow = (index) => {
-
-    const updated = [...items];
-
-    updated.splice(index, 1);
-
-    setItems(updated);
-  };
-
-  const handleSubmit = async (e) => {
-
-    e.preventDefault();
+    barcode,
+    index
+  ) => {
 
     try {
 
-      const data = {
-        customerName,
-
-        productName,
-
-        mode,
-
-        items:
-          mode === "barcode"
-            ? items.map((item) => ({
-                barcode: item.barcode,
-                weight: Number(item.weight),
-                status: "PENDING",
-              }))
-            : [],
-
-        pcsTracking:
-          mode === "pcs"
-            ? {
-                totalWeight:
-                  Number(totalWeight),
-
-                totalPieces:
-                  Number(totalPieces),
-              }
-            : {},
-      };
-
-      await axios.post(
-        "${import.meta.env.VITE_API_URL}/api/transactions/create",
-        data
+      const res = await axios.get(
+        `${import.meta.env.VITE_API_URL}/api/inventory/${barcode}`
       );
 
-      alert("Transaction Added");
+      const data = res.data;
 
-      setCustomerName("");
+      setProductName(
+        data.productName
+      );
 
-      setProductName("");
+      const updated = [...items];
 
-      setMode("barcode");
+      updated[index] = {
+        ...updated[index],
+        barcode: data.barcode,
+        weight: data.weight,
+      };
 
-      setItems([
-        {
-          barcode: "",
-          weight: "",
-        },
-      ]);
+      setItems(updated);
 
-      setTotalWeight("");
+      setTotalPieces(
+        data.pcs || 0
+      );
 
-      setTotalPieces("");
+      setTotalWeight(
+        data.weight || 0
+      );
 
     } catch (error) {
 
@@ -151,69 +107,139 @@ function NewTransaction() {
     }
   };
 
+  const handleSubmit = async () => {
+
+    try {
+
+      setLoading(true);
+
+      const data = {
+        customerName,
+        productName,
+        mode,
+        items,
+
+        totalPieces,
+
+        totalWeight,
+      };
+
+      await axios.post(
+        `${import.meta.env.VITE_API_URL}/api/transactions/create`,
+        data
+      );
+
+      alert(
+        "Transaction Added Successfully"
+      );
+
+      setCustomerName("");
+      setProductName("");
+
+      setItems([
+        {
+          barcode: "",
+          weight: "",
+          status: "PENDING",
+        },
+      ]);
+
+      setTotalPieces(0);
+      setTotalWeight(0);
+
+    } catch (error) {
+
+      console.log(error);
+
+      alert(
+        "Failed To Add Transaction"
+      );
+
+    } finally {
+
+      setLoading(false);
+    }
+  };
+
   return (
-    <div className="bg-transparent text-white p-4 sm:p-6 md:p-8">
 
-      <h1 className="text-3xl sm:text-4xl font-black bg-gradient-to-r from-pink-400 via-orange-400 to-purple-500 bg-clip-text text-transparent mb-8">
-        New Transaction
-      </h1>
+    <div className="p-4 sm:p-6 md:p-8">
 
-      <form
-        onSubmit={handleSubmit}
-        className="space-y-6"
-      >
+      <div className="max-w-5xl mx-auto bg-white/5 backdrop-blur-xl border border-white/10 rounded-3xl p-5 sm:p-8">
 
-        <input
-          type="text"
-          placeholder="Customer Name"
-          className="w-full p-4 rounded-2xl bg-white/10 backdrop-blur-lg border border-white/10"
-          value={customerName}
-          onChange={(e) =>
-            setCustomerName(e.target.value)
-          }
-        />
+        <h1 className="text-3xl font-bold text-pink-400 mb-8">
+          New Transaction
+        </h1>
 
-        <input
-          type="text"
-          placeholder="Product Name"
-          className="w-full p-4 rounded-2xl bg-white/10 backdrop-blur-lg border border-white/10"
-          value={productName}
-          onChange={(e) =>
-            setProductName(e.target.value)
-          }
-        />
+        {/* CUSTOMER */}
 
-        <div className="flex flex-col sm:flex-row gap-5">
+        <div className="mb-5">
 
-          <label className="flex items-center gap-3 bg-white/10 px-5 py-3 rounded-2xl">
-
-            <input
-              type="radio"
-              value="barcode"
-              checked={mode === "barcode"}
-              onChange={(e) =>
-                setMode(e.target.value)
-              }
-            />
-
-            Barcode Mode
-
+          <label className="block mb-2 font-semibold">
+            Customer Name
           </label>
 
-          <label className="flex items-center gap-3 bg-white/10 px-5 py-3 rounded-2xl">
+          <input
+            type="text"
+            value={customerName}
+            onChange={(e) =>
+              setCustomerName(
+                e.target.value
+              )
+            }
+            className="w-full p-4 rounded-2xl bg-white/10 border border-white/10 outline-none"
+            placeholder="Enter Customer Name"
+          />
 
-            <input
-              type="radio"
-              value="pcs"
-              checked={mode === "pcs"}
-              onChange={(e) =>
-                setMode(e.target.value)
-              }
-            />
+        </div>
 
-            PCS Mode
+        {/* PRODUCT */}
 
+        <div className="mb-5">
+
+          <label className="block mb-2 font-semibold">
+            Product Name
           </label>
+
+          <input
+            type="text"
+            value={productName}
+            onChange={(e) =>
+              setProductName(
+                e.target.value
+              )
+            }
+            className="w-full p-4 rounded-2xl bg-white/10 border border-white/10 outline-none"
+            placeholder="Enter Product Name"
+          />
+
+        </div>
+
+        {/* MODE */}
+
+        <div className="mb-8">
+
+          <label className="block mb-2 font-semibold">
+            Transaction Mode
+          </label>
+
+          <select
+            value={mode}
+            onChange={(e) =>
+              setMode(e.target.value)
+            }
+            className="w-full p-4 rounded-2xl bg-white/10 border border-white/10 outline-none"
+          >
+
+            <option value="barcode">
+              Barcode Mode
+            </option>
+
+            <option value="pcs">
+              PCS Mode
+            </option>
+
+          </select>
 
         </div>
 
@@ -221,50 +247,69 @@ function NewTransaction() {
 
         {mode === "barcode" && (
 
-          <div className="space-y-5">
+          <div className="space-y-6 mb-8">
 
             {items.map((item, index) => (
 
               <div
                 key={index}
-                className="bg-white/5 border border-white/10 rounded-3xl p-5 space-y-4"
+                className="bg-black/30 p-5 rounded-3xl space-y-4"
               >
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+
+                  <label className="block mb-2 font-semibold">
+                    Barcode
+                  </label>
 
                   <input
-  type="text"
-  value={barcode}
-  onChange={(e) => setBarcode(e.target.value)}
-  placeholder="Scan Barcode"
-  autoFocus
-  onKeyDown={(e) => {
-    if (e.key === "Enter") {
-      handleBarcodeSearch();
-    }
-  }}
-  className="w-full p-4 rounded-xl bg-white/10 border border-white/20 outline-none"
-/>
+                    type="text"
+                    value={item.barcode}
 
-<OCRScanner
-  onDetected={(barcode) => {
+                    onChange={(e) =>
+                      handleItemChange(
+                        index,
+                        "barcode",
+                        e.target.value
+                      )
+                    }
 
-    const updated = [...items];
+                    className="w-full p-4 rounded-2xl bg-white/10 border border-white/10 outline-none"
 
-    updated[index].barcode =
-      barcode;
+                    placeholder="Scan / Enter Barcode"
+                  />
 
-    setItems(updated);
+                </div>
 
-    fetchInventoryData(barcode);
-  }}
-/>
+                {/* OCR SCANNER */}
+
+                <OCRScanner
+                  onDetected={(barcode) => {
+
+                    const updated = [...items];
+
+                    updated[index].barcode =
+                      barcode;
+
+                    setItems(updated);
+
+                    fetchInventoryData(
+                      barcode,
+                      index
+                    );
+                  }}
+                />
+
+                <div>
+
+                  <label className="block mb-2 font-semibold">
+                    Weight
+                  </label>
 
                   <input
                     type="number"
-                    placeholder="Weight"
-                    className="p-4 rounded-2xl bg-black/30 backdrop-blur-lg border border-white/10"
                     value={item.weight}
+
                     onChange={(e) =>
                       handleItemChange(
                         index,
@@ -272,115 +317,101 @@ function NewTransaction() {
                         e.target.value
                       )
                     }
+
+                    className="w-full p-4 rounded-2xl bg-white/10 border border-white/10 outline-none"
+
+                    placeholder="Weight"
                   />
 
                 </div>
 
-                <div className="flex flex-col sm:flex-row gap-3">
-
-                  <button
-                    type="button"
-                    onClick={() =>
-                      setScannerIndex(index)
-                    }
-                    className="bg-gradient-to-r from-purple-500 to-pink-500 px-5 py-3 rounded-2xl font-bold"
-                  >
-                    Scan QR
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() =>
-                      removeRow(index)
-                    }
-                    className="bg-red-500 px-5 py-3 rounded-2xl font-bold"
-                  >
-                    Remove
-                  </button>
-
-                </div>
-
-                {scannerIndex === index && (
-
-                  <div className="overflow-hidden rounded-3xl border border-white/10">
-
-                    <Scanner
-                      onScan={(result) => {
-
-                        if (
-                          result?.[0]?.rawValue
-                        ) {
-
-                          const updated =
-                            [...items];
-
-                          updated[index].barcode =
-                            result[0].rawValue;
-
-                          setItems(updated);
-
-                          setScannerIndex(null);
-                        }
-                      }}
-                      onError={(err) =>
-                        console.log(err)
-                      }
-                    />
-
-                  </div>
-                )}
+                <button
+                  onClick={() =>
+                    removeItem(index)
+                  }
+                  className="bg-red-500 px-5 py-3 rounded-2xl font-bold"
+                >
+                  Remove
+                </button>
 
               </div>
+
             ))}
 
             <button
-              type="button"
-              onClick={addRow}
-              className="bg-blue-500 px-6 py-3 rounded-2xl font-bold"
+              onClick={addItem}
+              className="bg-gradient-to-r from-pink-500 to-purple-500 px-6 py-4 rounded-2xl font-bold"
             >
               Add Barcode
             </button>
 
           </div>
+
         )}
 
         {/* PCS MODE */}
 
         {mode === "pcs" && (
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mb-8">
 
-            <input
-              type="number"
-              placeholder="Total Weight"
-              className="p-4 rounded-2xl bg-white/10 backdrop-blur-lg border border-white/10"
-              value={totalWeight}
-              onChange={(e) =>
-                setTotalWeight(e.target.value)
-              }
-            />
+            <div>
 
-            <input
-              type="number"
-              placeholder="Total Pieces"
-              className="p-4 rounded-2xl bg-white/10 backdrop-blur-lg border border-white/10"
-              value={totalPieces}
-              onChange={(e) =>
-                setTotalPieces(e.target.value)
-              }
-            />
+              <label className="block mb-2 font-semibold">
+                Total PCS
+              </label>
+
+              <input
+                type="number"
+                value={totalPieces}
+                onChange={(e) =>
+                  setTotalPieces(
+                    e.target.value
+                  )
+                }
+                className="w-full p-4 rounded-2xl bg-white/10 border border-white/10 outline-none"
+              />
+
+            </div>
+
+            <div>
+
+              <label className="block mb-2 font-semibold">
+                Total Weight
+              </label>
+
+              <input
+                type="number"
+                value={totalWeight}
+                onChange={(e) =>
+                  setTotalWeight(
+                    e.target.value
+                  )
+                }
+                className="w-full p-4 rounded-2xl bg-white/10 border border-white/10 outline-none"
+              />
+
+            </div>
 
           </div>
+
         )}
 
+        {/* SUBMIT */}
+
         <button
-          type="submit"
-          className="w-full sm:w-auto bg-gradient-to-r from-pink-500 via-orange-500 to-purple-500 px-8 py-4 rounded-2xl font-black text-white shadow-2xl"
+          onClick={handleSubmit}
+          disabled={loading}
+          className="w-full bg-gradient-to-r from-pink-500 via-orange-500 to-purple-500 py-4 rounded-2xl font-bold text-lg"
         >
-          Save Transaction
+
+          {loading
+            ? "Saving..."
+            : "Create Transaction"}
+
         </button>
 
-      </form>
+      </div>
 
     </div>
   );

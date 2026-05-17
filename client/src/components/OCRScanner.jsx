@@ -1,42 +1,76 @@
+import { useState } from "react";
 import Tesseract from "tesseract.js";
 
 function OCRScanner({ onDetected }) {
+
+  const [loading, setLoading] =
+    useState(false);
 
   const handleImage = async (e) => {
 
     const file = e.target.files[0];
 
-    if (!file) return;
+    if (!file || loading) return;
 
-    const result = await Tesseract.recognize(
-      file,
-      "eng"
-    );
+    setLoading(true);
 
-    const text = result.data.text;
+    try {
 
-    const barcodeRegex =
-      /\b\d{3}-[A-Z0-9]+\b/g;
+      const result =
+        await Tesseract.recognize(
+          file,
+          "eng"
+        );
 
-    const match = text.match(
-      barcodeRegex
-    );
+      const text =
+        result.data.text;
 
-    if (match?.[0]) {
-      onDetected(match[0]);
-    } else {
-      alert("Barcode not found");
+      const barcodeRegex =
+        /\d{3}-[A-Za-z0-9]+/g;
+
+      const match =
+        text.match(barcodeRegex);
+
+      if (match?.[0]) {
+
+        onDetected(match[0]);
+
+      } else {
+
+        alert("Barcode not found");
+      }
+
+    } catch (error) {
+
+      console.log(error);
+
+      alert("OCR Failed");
+
+    } finally {
+
+      setLoading(false);
     }
   };
 
   return (
 
-    <input
-      type="file"
-      accept="image/*"
-      capture="environment"
-      onChange={handleImage}
-    />
+    <div className="space-y-2">
+
+      <input
+        type="file"
+        accept="image/*"
+        capture="environment"
+        onChange={handleImage}
+        className="w-full"
+      />
+
+      {loading && (
+        <p className="text-sm text-pink-400">
+          Scanning...
+        </p>
+      )}
+
+    </div>
   );
 }
 

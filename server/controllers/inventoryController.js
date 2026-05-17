@@ -28,7 +28,7 @@ const uploadInventory = async (
 
       const exists =
         await Inventory.findOne({
-          barcode: item.barcode,
+          barcode: item.barcode || "",
         });
 
       if (!exists) {
@@ -38,9 +38,8 @@ const uploadInventory = async (
           productName:
             item.productName,
 
-          weight: item.weight,
-
-          pcs: item.pcs,
+          weight: Number(item.weight) || 0,
+pcs: Number(item.pcs) || 0,
 
           purity: item.purity,
 
