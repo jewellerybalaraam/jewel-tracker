@@ -16,15 +16,20 @@ app.get("/", (req, res) => {
   res.send("Jewel Tracker API Running");
 });
 
+console.log("MONGO URI EXISTS:", !!process.env.MONGO_URI);
+console.log("PORT:", process.env.PORT);
+
+const PORT = process.env.PORT || 5000;
+
 mongoose
   .connect(process.env.MONGO_URI)
   .then(() => {
     console.log("MongoDB Connected");
 
-    app.listen(5000, () => {
-      console.log("Server running on port 5000");
+    app.listen(PORT, "0.0.0.0", () => {
+      console.log(`Server running on port ${PORT}`);
     });
   })
   .catch((err) => {
-    console.log(err);
+    console.error("Mongo Error:", err);
   });

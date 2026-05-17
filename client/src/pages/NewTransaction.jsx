@@ -91,7 +91,7 @@ function NewTransaction() {
       };
 
       await axios.post(
-        "http://localhost:5000/api/transactions/create",
+        "${import.meta.env.VITE_API_URL}/api/transactions/create",
         data
       );
 
