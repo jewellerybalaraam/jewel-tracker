@@ -14,6 +14,7 @@ function BarcodeScanner({ onScan }) {
 
         constraints={{
           facingMode: "environment",
+          advanced: [{zoom: 8 }],
         }}
 
         scanDelay={800}
