@@ -14,13 +14,13 @@ function BarcodeScanner({ onScan }) {
 
         constraints={{
           facingMode: "environment",
-          advanced: [{zoom: 8 }],
         }}
 
         scanDelay={800}
 
         formats={[
           "qr_code",
+          "data_matrix",
           "code_128",
           "ean_13",
           "ean_8",
