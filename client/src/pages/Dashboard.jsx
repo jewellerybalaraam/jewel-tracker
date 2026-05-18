@@ -1,154 +1,234 @@
-import { useEffect, useState } from "react";
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  Tooltip,
+  ResponsiveContainer,
+  PieChart,
+  Pie,
+  Cell,
+} from "recharts";
+
+import {
+  useEffect,
+  useState,
+} from "react";
+
 import axios from "axios";
 
 function Dashboard() {
 
-  const [stats, setStats] = useState({
-    customers: 0,
-    transactions: 0,
-    sold: 0,
-    returned: 0,
-    pending: 0,
-  });
+  const [transactions, setTransactions] =
+    useState([]);
 
   useEffect(() => {
-    fetchStats();
+    fetchTransactions();
   }, []);
 
-  const fetchStats = async () => {
+  const fetchTransactions =
+    async () => {
 
-    try {
+      try {
 
-      const res = await axios.get(
-        "${import.meta.env.VITE_API_URL}/api/transactions"
-      );
+        const res =
+          await axios.get(
+            `${import.meta.env.VITE_API_URL}/api/transactions`
+          );
 
-      const data = res.data;
+        setTransactions(
+          res.data
+        );
 
-      const customerSet = new Set();
+      } catch (error) {
 
-      let sold = 0;
-      let returned = 0;
-      let pending = 0;
+        console.log(error);
+      }
+    };
 
-      data.forEach((t) => {
+  const totalTransactions =
+    transactions.length;
 
-        customerSet.add(t.customerName);
+  let pendingCount = 0;
+  let soldCount = 0;
+  let returnedCount = 0;
 
-        if (t.mode === "barcode") {
+  transactions.forEach((t) => {
 
-          t.items.forEach((item) => {
+    t.items?.forEach((item) => {
 
-            if (item.status === "SOLD")
-              sold++;
+      if (
+        item.status === "PENDING"
+      ) {
+        pendingCount++;
+      }
 
-            else if (
-              item.status === "RETURNED"
-            )
-              returned++;
+      if (
+        item.status === "SOLD"
+      ) {
+        soldCount++;
+      }
 
-            else
-              pending++;
-          });
-        }
+      if (
+        item.status === "RETURNED"
+      ) {
+        returnedCount++;
+      }
+    });
+  });
 
-        if (t.mode === "pcs") {
-
-          sold +=
-            t.pcsTracking?.soldPieces || 0;
-
-          returned +=
-            t.pcsTracking?.returnedPieces || 0;
-
-          pending +=
-            (t.pcsTracking?.totalPieces || 0)
-            -
-            (
-              t.pcsTracking?.soldPieces || 0
-            )
-            -
-            (
-              t.pcsTracking?.returnedPieces || 0
-            );
-        }
-      });
-
-      setStats({
-        customers: customerSet.size,
-        transactions: data.length,
-        sold,
-        returned,
-        pending,
-      });
-
-    } catch (error) {
-      console.log(error);
-    }
-  };
-
-  const cards = [
+  const chartData = [
     {
-      title: "Customers",
-      value: stats.customers,
-      color:
-        "from-pink-500 to-orange-500",
+      name: "Pending",
+      value: pendingCount,
     },
-
     {
-      title: "Transactions",
-      value: stats.transactions,
-      color:
-        "from-blue-500 to-cyan-500",
+      name: "Sold",
+      value: soldCount,
     },
-
     {
-      title: "Sold",
-      value: stats.sold,
-      color:
-        "from-red-500 to-pink-500",
-    },
-
-    {
-      title: "Returned",
-      value: stats.returned,
-      color:
-        "from-green-500 to-emerald-500",
-    },
-
-    {
-      title: "Pending",
-      value: stats.pending,
-      color:
-        "from-yellow-500 to-orange-500",
+      name: "Returned",
+      value: returnedCount,
     },
   ];
 
   return (
-    <div className="p-4 sm:p-6 md:p-8">
 
-      <h1 className="text-3xl sm:text-4xl font-black bg-gradient-to-r from-pink-400 via-orange-400 to-purple-500 bg-clip-text text-transparent mb-8">
-        Dashboard
-      </h1>
+    <div className="p-6 space-y-8">
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-5">
+      {/* SUMMARY CARDS */}
 
-        {cards.map((card, index) => (
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-5">
 
-          <div
-            key={index}
-            className={`bg-gradient-to-br ${card.color} rounded-3xl p-6 shadow-2xl`}
+        <div className="bg-white/5 p-6 rounded-3xl border border-white/10">
+
+          <h2 className="text-gray-400">
+            Total Transactions
+          </h2>
+
+          <p className="text-4xl font-bold text-pink-400 mt-3">
+            {totalTransactions}
+          </p>
+
+        </div>
+
+        <div className="bg-yellow-500/20 p-6 rounded-3xl border border-white/10">
+
+          <h2 className="text-yellow-300">
+            Pending
+          </h2>
+
+          <p className="text-4xl font-bold mt-3">
+            {pendingCount}
+          </p>
+
+        </div>
+
+        <div className="bg-red-500/20 p-6 rounded-3xl border border-white/10">
+
+          <h2 className="text-red-300">
+            Sold
+          </h2>
+
+          <p className="text-4xl font-bold mt-3">
+            {soldCount}
+          </p>
+
+        </div>
+
+        <div className="bg-green-500/20 p-6 rounded-3xl border border-white/10">
+
+          <h2 className="text-green-300">
+            Returned
+          </h2>
+
+          <p className="text-4xl font-bold mt-3">
+            {returnedCount}
+          </p>
+
+        </div>
+
+      </div>
+
+      {/* CHARTS */}
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+
+        {/* BAR CHART */}
+
+        <div className="bg-white/5 p-6 rounded-3xl border border-white/10 h-[400px]">
+
+          <h2 className="text-2xl font-bold text-pink-400 mb-6">
+            Transaction Analytics
+          </h2>
+
+          <ResponsiveContainer
+            width="100%"
+            height="100%"
           >
 
-            <p className="text-white/80 text-sm mb-2">
-              {card.title}
-            </p>
+            <BarChart
+              data={chartData}
+            >
 
-            <h2 className="text-4xl font-black">
-              {card.value}
-            </h2>
+              <XAxis dataKey="name" />
 
-          </div>
-        ))}
+              <YAxis />
+
+              <Tooltip />
+
+              <Bar
+                dataKey="value"
+                radius={[10, 10, 0, 0]}
+              />
+
+            </BarChart>
+
+          </ResponsiveContainer>
+
+        </div>
+
+        {/* PIE CHART */}
+
+        <div className="bg-white/5 p-6 rounded-3xl border border-white/10 h-[400px]">
+
+          <h2 className="text-2xl font-bold text-pink-400 mb-6">
+            Status Distribution
+          </h2>
+
+          <ResponsiveContainer
+            width="100%"
+            height="100%"
+          >
+
+            <PieChart>
+
+              <Pie
+                data={chartData}
+                dataKey="value"
+                outerRadius={120}
+                label
+              >
+
+                {chartData.map(
+                  (entry, index) => (
+
+                    <Cell
+                      key={index}
+                    />
+
+                  )
+                )}
+
+              </Pie>
+
+              <Tooltip />
+
+            </PieChart>
+
+          </ResponsiveContainer>
+
+        </div>
 
       </div>
 

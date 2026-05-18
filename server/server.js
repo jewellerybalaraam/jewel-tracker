@@ -12,6 +12,9 @@ const inventoryRoutes =
 const clientRoutes =
   require("./routes/clientRoutes");
 
+const authRoutes =
+  require("./routes/authRoutes");  
+
 const app = express();
 
 app.use(cors());
@@ -25,6 +28,11 @@ app.use(
 app.use(
   "/api/inventory",
   inventoryRoutes
+);
+
+app.use(
+  "/api/auth",
+  authRoutes
 );
 
 app.use(
