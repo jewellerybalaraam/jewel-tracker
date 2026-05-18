@@ -1,26 +1,31 @@
-const express = require("express");
+const express = require(
+  "express"
+);
 
-const router = express.Router();
+const router =
+  express.Router();
 
 const {
   createTransaction,
-  getAllTransactions,
+  getTransactions,
   updateItemStatus,
-  searchBarcode,
-  customerHistory,
-  updatePCS,
-} = require("../controllers/transactionController");
+} = require(
+  "../controllers/transactionController"
+);
 
-router.post("/create", createTransaction);
+router.post(
+  "/",
+  createTransaction
+);
 
-router.get("/", getAllTransactions);
+router.get(
+  "/",
+  getTransactions
+);
 
-router.put("/update-status", updateItemStatus);
-
-router.get("/barcode/:barcode", searchBarcode);
-
-router.get("/customer/:customerName", customerHistory);
-
-router.put("/update-pcs", updatePCS);
+router.put(
+  "/:transactionId/:itemIndex",
+  updateItemStatus
+);
 
 module.exports = router;
