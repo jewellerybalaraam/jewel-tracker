@@ -1,6 +1,10 @@
-const bcrypt = require("bcryptjs");
+const bcrypt = require(
+  "bcryptjs"
+);
 
-const jwt = require("jsonwebtoken");
+const jwt = require(
+  "jsonwebtoken"
+);
 
 const User = require(
   "../models/User"
@@ -16,6 +20,7 @@ const register = async (
     const {
       username,
       password,
+      role,
     } = req.body;
 
     const existingUser =
@@ -40,8 +45,12 @@ const register = async (
     const user =
       await User.create({
         username,
+
         password:
           hashedPassword,
+
+        role:
+          role || "user",
       });
 
     res.json(user);
@@ -67,6 +76,7 @@ const login = async (
     const {
       username,
       password,
+      deviceId,
     } = req.body;
 
     const user =
@@ -94,6 +104,38 @@ const login = async (
         message:
           "Invalid Password",
       });
+    }
+
+    /* ADMIN DEVICE LOCK */
+
+    if (
+      user.role === "admin"
+    ) {
+
+      /* FIRST LOGIN */
+
+      if (
+        !user.deviceId
+      ) {
+
+        user.deviceId =
+          deviceId;
+
+        await user.save();
+      }
+
+      /* OTHER DEVICE */
+
+      else if (
+        user.deviceId !==
+        deviceId
+      ) {
+
+        return res.status(403).json({
+          message:
+            "Admin login allowed only on registered device",
+        });
+      }
     }
 
     const token = jwt.sign(

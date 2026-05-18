@@ -15,10 +15,34 @@ function Login() {
   const [password, setPassword] =
     useState("");
 
+  const getDeviceId = () => {
+
+    let deviceId =
+      localStorage.getItem(
+        "deviceId"
+      );
+
+    if (!deviceId) {
+
+      deviceId =
+        crypto.randomUUID();
+
+      localStorage.setItem(
+        "deviceId",
+        deviceId
+      );
+    }
+
+    return deviceId;
+  };
+
   const handleLogin =
     async () => {
 
       try {
+
+        const deviceId =
+          getDeviceId();
 
         const res =
           await axios.post(
@@ -26,6 +50,7 @@ function Login() {
             {
               username,
               password,
+              deviceId,
             }
           );
 
@@ -47,7 +72,11 @@ function Login() {
 
         console.log(error);
 
-        alert("Login Failed");
+        alert(
+          error?.response?.data
+            ?.message ||
+            "Login Failed"
+        );
       }
     };
 
@@ -88,7 +117,9 @@ function Login() {
           />
 
           <button
-            onClick={handleLogin}
+            onClick={
+              handleLogin
+            }
             className="w-full bg-gradient-to-r from-pink-500 to-purple-500 py-4 rounded-2xl font-bold"
           >
             Login
