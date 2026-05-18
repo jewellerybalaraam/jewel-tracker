@@ -4,15 +4,6 @@ const Inventory = require(
   "../models/Inventory"
 );
 
-const cleanKey = (key) => {
-
-  return key
-    ?.toString()
-    .trim()
-    .toLowerCase()
-    .replace(/\s+/g, "");
-};
-
 const uploadInventory =
   async (req, res) => {
 
@@ -32,63 +23,50 @@ const uploadInventory =
       const sheet =
         workbook.Sheets[sheetName];
 
-      const rawData =
+      const data =
         XLSX.utils.sheet_to_json(
           sheet,
           {
             defval: "",
+            range: 2,
           }
         );
 
       const formattedData =
-        rawData.map((row) => {
+        data.map((row) => ({
 
-          const cleanedRow = {};
+          lotNo:
+            row["LOT NO"] || "",
 
-          Object.keys(row).forEach(
-            (key) => {
+          productName:
+            row["PRODUCTNAME"] || "",
 
-              cleanedRow[
-                cleanKey(key)
-              ] = row[key];
-            }
-          );
+          pcs:
+            Number(
+              row["LOT PCS"]
+            ) || 0,
 
-          return {
+          weight:
+            Number(
+              row["LOT NET WT"]
+            ) || 0,
 
-            lotNo:
-              cleanedRow.lotno || "",
+          balancePcs:
+            Number(
+              row["BAL PCS"]
+            ) || 0,
 
-            productName:
-              cleanedRow.productname || "",
+          balanceWeight:
+            Number(
+              row["BAL NET WT"]
+            ) || 0,
 
-            pcs:
-              Number(
-                cleanedRow.pcs
-              ) || 0,
+          designerName:
+            row["DESIGNER NAME"] || "",
 
-            weight:
-              Number(
-                cleanedRow.weight
-              ) || 0,
-
-            balancePcs:
-              Number(
-                cleanedRow.balancepcs
-              ) || 0,
-
-            balanceWeight:
-              Number(
-                cleanedRow.balanceweight
-              ) || 0,
-
-            designerName:
-              cleanedRow.designername || "",
-
-            lotDate:
-              cleanedRow.lotdate || "",
-          };
-        });
+          lotDate:
+            row["LOTDATE"] || "",
+        }));
 
       await Inventory.deleteMany();
 
