@@ -9,10 +9,12 @@ const transactionRoutes =
 const inventoryRoutes =
   require("./routes/inventoryRoutes");
 
+const clientRoutes =
+  require("./routes/clientRoutes");
+
 const app = express();
 
 app.use(cors());
-
 app.use(express.json());
 
 app.use(
@@ -25,10 +27,13 @@ app.use(
   inventoryRoutes
 );
 
+app.use(
+  "/api/clients",
+  clientRoutes
+);
+
 app.get("/", (req, res) => {
-  res.send(
-    "Jewel Tracker API Running"
-  );
+  res.send("Jewel ERP API Running");
 });
 
 const PORT =
@@ -37,16 +42,12 @@ const PORT =
 mongoose
   .connect(process.env.MONGO_URI)
   .then(() => {
-
-    console.log(
-      "MongoDB Connected"
-    );
+    console.log("MongoDB Connected");
 
     app.listen(
       PORT,
       "0.0.0.0",
       () => {
-
         console.log(
           `Server running on port ${PORT}`
         );
@@ -54,8 +55,5 @@ mongoose
     );
   })
   .catch((err) => {
-    console.error(
-      "Mongo Error:",
-      err
-    );
+    console.error(err);
   });

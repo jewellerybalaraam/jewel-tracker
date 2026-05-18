@@ -7,60 +7,53 @@ const itemSchema = new mongoose.Schema({
 
   status: {
     type: String,
-    enum: ["PENDING", "RETURNED", "SOLD"],
+    enum: [
+      "PENDING",
+      "SOLD",
+      "RETURNED",
+    ],
     default: "PENDING",
   },
+
+  billBookNo: String,
+
+  billPageNo: String,
 });
 
-const transactionSchema = new mongoose.Schema(
-  {
-    customerName: {
-  type: String,
-  required: true,
-},
-
-    productName: {
-      type: String,
-      required: true,
-    },
-
-    mode: {
-      type: String,
-      enum: ["barcode", "pcs"],
-      required: true,
-    },
-
-    items: [itemSchema],
-
-    pcsTracking: {
-
-      totalWeight: Number,
-
-      totalPieces: Number,
-
-      returnedWeight: {
-        type: Number,
-        default: 0,
+const transactionSchema =
+  new mongoose.Schema(
+    {
+      clientId: {
+        type:
+          mongoose.Schema.Types.ObjectId,
+        ref: "Client",
       },
 
-      returnedPieces: {
-        type: Number,
-        default: 0,
-      },
+      customerName: String,
 
-      soldWeight: {
-        type: Number,
-        default: 0,
-      },
+      productName: String,
 
-      soldPieces: {
-        type: Number,
-        default: 0,
+      mode: String,
+
+      items: [itemSchema],
+
+      pcsTracking: {
+        totalPieces: Number,
+        totalWeight: Number,
+        returnedPieces: {
+          type: Number,
+          default: 0,
+        },
+        returnedWeight: {
+          type: Number,
+          default: 0,
+        },
       },
     },
-  },
-  { timestamps: true }
-);
+    {
+      timestamps: true,
+    }
+  );
 
 module.exports = mongoose.model(
   "Transaction",

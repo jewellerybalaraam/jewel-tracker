@@ -1,243 +1,129 @@
-const Transaction = require("../models/Transaction");
-const Customer = require("../models/Customer");
+const Transaction = require(
+  "../models/Transaction"
+);
 
-exports.createTransaction = async (req, res) => {
+const createTransaction =
+  async (req, res) => {
 
-  try {
+    try {
 
-    const {
-      customerName,
-      productName,
-      mode,
-      items,
-      pcsTracking,
-    } = req.body;
+      const transaction =
+        await Transaction.create(
+          req.body
+        );
 
-    let customer = await Customer.findOne({
-      name: customerName,
-    });
+      res.json(transaction);
 
-    if (!customer) {
+    } catch (error) {
 
-      customer = await Customer.create({
-        name: customerName,
+      console.log(error);
+
+      res.status(500).json({
+        message:
+          "Failed to Create Transaction",
       });
     }
+  };
 
-    const transaction = await Transaction.create({
-      customerId: customer._id,
+const getTransactions =
+  async (req, res) => {
 
-      productName,
+    try {
 
-      mode,
+      const transactions =
+        await Transaction.find()
 
-      items: mode === "barcode" ? items : [],
+          .populate("clientId")
 
-      pcsTracking:
-        mode === "pcs"
-          ? pcsTracking
-          : {},
-    });
-
-    res.status(201).json(transaction);
-
-  } catch (error) {
-
-    res.status(500).json({
-      message: error.message,
-    });
-  }
-};
-
-exports.getAllTransactions = async (req, res) => {
-
-  try {
-
-    const transactions = await Transaction.find()
-      .populate("customerId")
-      .sort({ createdAt: -1 });
-
-    const formatted = transactions.map((t) => ({
-
-      _id: t._id,
-
-      customerName: t.customerId?.name,
-
-      productName: t.productName,
-
-      mode: t.mode,
-
-      items: t.items,
-
-      pcsTracking: t.pcsTracking,
-
-      createdAt: t.createdAt,
-    }));
-
-    res.json(formatted);
-
-  } catch (error) {
-
-    res.status(500).json({
-      message: error.message,
-    });
-  }
-};
-
-exports.updateItemStatus = async (req, res) => {
-
-  try {
-
-    const { transactionId, itemIndex, status } = req.body;
-
-    const transaction = await Transaction.findById(transactionId);
-
-    if (!transaction) {
-      return res.status(404).json({
-        message: "Transaction not found",
-      });
-    }
-
-    transaction.items[itemIndex].status = status;
-
-    await transaction.save();
-
-    res.json({
-      message: "Status updated",
-      transaction,
-    });
-
-  } catch (error) {
-
-    res.status(500).json({
-      message: error.message,
-    });
-  }
-};
-
-exports.searchBarcode = async (req, res) => {
-
-  try {
-
-    const { barcode } = req.params;
-
-    const transactions = await Transaction.find({
-      "items.barcode": barcode,
-    }).populate("customerId");
-
-    const results = [];
-
-    transactions.forEach((transaction) => {
-
-      transaction.items.forEach((item) => {
-
-        if (item.barcode === barcode) {
-
-          results.push({
-            customerName: transaction.customerId?.name,
-
-            productName: transaction.productName,
-
-            barcode: item.barcode,
-
-            weight: item.weight,
-
-            status: item.status,
-
-            date: transaction.createdAt,
+          .sort({
+            createdAt: -1,
           });
-        }
-      });
-    });
 
-    res.json(results);
+      res.json(transactions);
 
-  } catch (error) {
+    } catch (error) {
 
-    res.status(500).json({
-      message: error.message,
-    });
-  }
-};
+      console.log(error);
 
-exports.customerHistory = async (req, res) => {
-
-  try {
-
-    const { customerName } = req.params;
-
-    const { from, to } = req.query;
-
-    const Customer = require("../models/Customer");
-
-    const customer = await Customer.findOne({
-      name: {
-        $regex: customerName,
-        $options: "i",
-      },
-    });
-
-    if (!customer) {
-      return res.json([]);
-    }
-
-    let filter = {
-      customerId: customer._id,
-    };
-
-    if (from && to) {
-
-      filter.createdAt = {
-        $gte: new Date(from),
-        $lte: new Date(to),
-      };
-    }
-
-    const transactions = await Transaction.find(filter)
-      .populate("customerId")
-      .sort({ createdAt: -1 });
-
-    res.json(transactions);
-
-  } catch (error) {
-
-    res.status(500).json({
-      message: error.message,
-    });
-  }
-};
-
-exports.updatePCS = async (req, res) => {
-
-  try {
-
-    const {
-      transactionId,
-      pcsTracking,
-    } = req.body;
-
-    const transaction =
-      await Transaction.findById(transactionId);
-
-    if (!transaction) {
-
-      return res.status(404).json({
-        message: "Transaction not found",
+      res.status(500).json({
+        message:
+          "Failed to Fetch Transactions",
       });
     }
+  };
 
-    transaction.pcsTracking = pcsTracking;
+const updateItemStatus =
+  async (req, res) => {
 
-    await transaction.save();
+    try {
 
-    res.json({
-      message: "PCS Updated",
-    });
+      const {
+        transactionId,
+        barcode,
+        status,
+        billBookNo,
+        billPageNo,
+      } = req.body;
 
-  } catch (error) {
+      const transaction =
+        await Transaction.findById(
+          transactionId
+        );
 
-    res.status(500).json({
-      message: error.message,
-    });
-  }
+      if (!transaction) {
+
+        return res.status(404).json({
+          message:
+            "Transaction Not Found",
+        });
+      }
+
+      const item =
+        transaction.items.find(
+          (i) =>
+            i.barcode === barcode
+        );
+
+      if (!item) {
+
+        return res.status(404).json({
+          message:
+            "Item Not Found",
+        });
+      }
+
+      item.status = status;
+
+      if (status === "SOLD") {
+
+        item.billBookNo =
+          billBookNo || "";
+
+        item.billPageNo =
+          billPageNo || "";
+      }
+
+      await transaction.save();
+
+      res.json({
+        success: true,
+        message:
+          "Item Status Updated",
+      });
+
+    } catch (error) {
+
+      console.log(error);
+
+      res.status(500).json({
+        message:
+          "Failed to Update Status",
+      });
+    }
+  };
+
+module.exports = {
+  createTransaction,
+  getTransactions,
+  updateItemStatus,
 };

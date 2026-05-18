@@ -49,6 +49,14 @@ function Sidebar() {
   name: "Upload Inventory",
   path: "/upload-inventory",
   icon: <FaPlusCircle />
+},
+{
+  name: "Clients",
+  path: "/clients",
+},
+{
+  name: "Pending",
+  path: "/pending-clients",
 }
   ];
 

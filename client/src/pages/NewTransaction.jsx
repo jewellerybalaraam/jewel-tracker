@@ -1,8 +1,18 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import axios from "axios";
-import OCRScanner from "../components/OCRScanner";
+
+import BarcodeScanner from "../components/BarcodeScanner";
 
 function NewTransaction() {
+
+  const [clients, setClients] =
+    useState([]);
+
+  const [filteredClients, setFilteredClients] =
+    useState([]);
+
+  const [selectedClient, setSelectedClient] =
+    useState(null);
 
   const [customerName, setCustomerName] =
     useState("");
@@ -13,233 +23,233 @@ function NewTransaction() {
   const [mode, setMode] =
     useState("barcode");
 
+  const [barcodeInput, setBarcodeInput] =
+    useState("");
+
   const [items, setItems] =
-    useState([
-      {
-        barcode: "",
-        weight: "",
-        status: "PENDING",
-      },
-    ]);
+    useState([]);
 
-  const [totalPieces, setTotalPieces] =
-    useState(0);
+  const [pcsTracking, setPcsTracking] =
+    useState({
+      totalPieces: "",
+      totalWeight: "",
+      returnedPieces: "",
+      returnedWeight: "",
+    });
 
-  const [totalWeight, setTotalWeight] =
-    useState(0);
+  useEffect(() => {
+    fetchClients();
+  }, []);
 
-  const [loading, setLoading] =
-    useState(false);
-
-  const addItem = () => {
-
-    setItems([
-      ...items,
-
-      {
-        barcode: "",
-        weight: "",
-        status: "PENDING",
-      },
-    ]);
-  };
-
-  const removeItem = (index) => {
-
-    const updated = [...items];
-
-    updated.splice(index, 1);
-
-    setItems(updated);
-  };
-
-  const handleItemChange = (
-    index,
-    field,
-    value
-  ) => {
-
-    const updated = [...items];
-
-    updated[index][field] = value;
-
-    setItems(updated);
-  };
-
-  const fetchInventoryData = async (
-    barcode,
-    index
-  ) => {
+  const fetchClients = async () => {
 
     try {
 
       const res = await axios.get(
-        `${import.meta.env.VITE_API_URL}/api/inventory/${barcode}`
+        `${import.meta.env.VITE_API_URL}/api/clients`
       );
 
-      const data = res.data;
-
-      setProductName(
-        data.productName
-      );
-
-      const updated = [...items];
-
-      updated[index] = {
-        ...updated[index],
-        barcode: data.barcode,
-        weight: data.weight,
-      };
-
-      setItems(updated);
-
-      setTotalPieces(
-        data.pcs || 0
-      );
-
-      setTotalWeight(
-        data.weight || 0
-      );
+      setClients(res.data);
 
     } catch (error) {
 
       console.log(error);
     }
+  };
+
+  const handleAddBarcode = () => {
+
+    if (!barcodeInput) {
+      return;
+    }
+
+    setItems([
+      ...items,
+      {
+        barcode: barcodeInput,
+        weight: 0,
+        status: "PENDING",
+      },
+    ]);
+
+    setBarcodeInput("");
   };
 
   const handleSubmit = async () => {
 
     try {
 
-      setLoading(true);
+      const payload = {
+        clientId:
+          selectedClient?._id,
 
-      const data = {
         customerName,
+
         productName,
+
         mode,
+
         items,
 
-        totalPieces,
-
-        totalWeight,
+        pcsTracking,
       };
 
       await axios.post(
-        `${import.meta.env.VITE_API_URL}/api/transactions/create`,
-        data
+        `${import.meta.env.VITE_API_URL}/api/transactions`,
+        payload
       );
 
-      console.log(
-        "Transaction Added Successfully"
+      alert(
+        "Transaction Added"
       );
 
       setCustomerName("");
       setProductName("");
+      setItems([]);
 
-      setItems([
-        {
-          barcode: "",
-          weight: "",
-          status: "PENDING",
-        },
-      ]);
-
-      setTotalPieces(0);
-      setTotalWeight(0);
+      setPcsTracking({
+        totalPieces: "",
+        totalWeight: "",
+        returnedPieces: "",
+        returnedWeight: "",
+      });
 
     } catch (error) {
 
       console.log(error);
-
-      console.log(
-        "Failed To Add Transaction"
-      );
-
-    } finally {
-
-      setLoading(false);
     }
   };
 
   return (
 
-    <div className="p-4 sm:p-6 md:p-8">
+    <div className="p-6">
 
-      <div className="max-w-5xl mx-auto bg-white/5 backdrop-blur-xl border border-white/10 rounded-3xl p-5 sm:p-8">
+      <div className="bg-white/5 p-6 rounded-3xl border border-white/10">
 
-        <h1 className="text-3xl font-bold text-pink-400 mb-8">
+        <h1 className="text-3xl font-bold text-pink-400 mb-6">
           New Transaction
         </h1>
 
-        {/* CUSTOMER */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
 
-        <div className="mb-5">
+          {/* CLIENT SEARCH */}
 
-          <label className="block mb-2 font-semibold">
-            Customer Name
-          </label>
+          <div className="relative">
+
+            <input
+              type="text"
+              placeholder="Search Client"
+              value={customerName}
+              onChange={(e) => {
+
+                setCustomerName(
+                  e.target.value
+                );
+
+                const filtered =
+                  clients.filter((client) =>
+                    client.name
+                      .toLowerCase()
+                      .includes(
+                        e.target.value.toLowerCase()
+                      )
+                  );
+
+                setFilteredClients(
+                  filtered
+                );
+              }}
+              className="p-4 rounded-2xl bg-black/20 w-full"
+            />
+
+            {filteredClients.length > 0 && (
+
+              <div className="absolute z-50 w-full bg-black border border-white/10 rounded-2xl mt-2 max-h-60 overflow-y-auto">
+
+                {filteredClients.map((client) => (
+
+                  <div
+                    key={client._id}
+                    onClick={() => {
+
+                      setCustomerName(
+                        client.name
+                      );
+
+                      setSelectedClient(
+                        client
+                      );
+
+                      setFilteredClients([]);
+                    }}
+                    className="p-4 hover:bg-white/10 cursor-pointer"
+                  >
+
+                    <p className="font-bold">
+                      {client.name}
+                    </p>
+
+                    <p className="text-sm text-gray-400">
+                      {client.storeName}
+                    </p>
+
+                  </div>
+
+                ))}
+
+              </div>
+
+            )}
+
+          </div>
+
+          {/* PRODUCT */}
 
           <input
             type="text"
-            value={customerName}
-            onChange={(e) =>
-              setCustomerName(
-                e.target.value
-              )
-            }
-            className="w-full p-4 rounded-2xl bg-white/10 border border-white/10 outline-none"
-            placeholder="Enter Customer Name"
-          />
-
-        </div>
-
-        {/* PRODUCT */}
-
-        <div className="mb-5">
-
-          <label className="block mb-2 font-semibold">
-            Product Name
-          </label>
-
-          <input
-            type="text"
+            placeholder="Product Name"
             value={productName}
             onChange={(e) =>
               setProductName(
                 e.target.value
               )
             }
-            className="w-full p-4 rounded-2xl bg-white/10 border border-white/10 outline-none"
-            placeholder="Enter Product Name"
+            className="p-4 rounded-2xl bg-black/20"
           />
 
         </div>
 
         {/* MODE */}
 
-        <div className="mb-8">
+        <div className="flex gap-4 mt-6">
 
-          <label className="block mb-2 font-semibold">
-            Transaction Mode
-          </label>
-
-          <select
-            value={mode}
-            onChange={(e) =>
-              setMode(e.target.value)
+          <button
+            onClick={() =>
+              setMode("barcode")
             }
-            className="w-full p-4 rounded-2xl bg-white/10 border border-white/10 outline-none"
+            className={`px-5 py-3 rounded-2xl font-bold
+            ${
+              mode === "barcode"
+                ? "bg-pink-500"
+                : "bg-black/20"
+            }`}
           >
+            Barcode Mode
+          </button>
 
-            <option value="barcode">
-              Barcode Mode
-            </option>
-
-            <option value="pcs">
-              PCS Mode
-            </option>
-
-          </select>
+          <button
+            onClick={() =>
+              setMode("pcs")
+            }
+            className={`px-5 py-3 rounded-2xl font-bold
+            ${
+              mode === "pcs"
+                ? "bg-pink-500"
+                : "bg-black/20"
+            }`}
+          >
+            PCS Mode
+          </button>
 
         </div>
 
@@ -247,103 +257,67 @@ function NewTransaction() {
 
         {mode === "barcode" && (
 
-          <div className="space-y-6 mb-8">
+          <div className="mt-8 space-y-4">
 
-            {items.map((item, index) => (
+            <BarcodeScanner
+              onScan={(value) =>
+                setBarcodeInput(value)
+              }
+            />
 
-              <div
-                key={index}
-                className="bg-black/30 p-5 rounded-3xl space-y-4"
+            <div className="flex flex-col md:flex-row gap-4">
+
+              <input
+                type="text"
+                placeholder="Scan Barcode"
+                value={barcodeInput}
+                onChange={(e) =>
+                  setBarcodeInput(
+                    e.target.value
+                  )
+                }
+                className="flex-1 p-4 rounded-2xl bg-black/20"
+              />
+
+              <button
+                onClick={
+                  handleAddBarcode
+                }
+                className="bg-gradient-to-r from-pink-500 to-purple-500 px-6 py-3 rounded-2xl font-bold"
               >
+                Add Barcode
+              </button>
 
-                <div>
+            </div>
 
-                  <label className="block mb-2 font-semibold">
-                    Barcode
-                  </label>
+            <div className="space-y-3">
 
-                  <input
-                    type="text"
-                    value={item.barcode}
+              {items.map(
+                (item, index) => (
 
-                    onChange={(e) =>
-                      handleItemChange(
-                        index,
-                        "barcode",
-                        e.target.value
-                      )
-                    }
+                  <div
+                    key={index}
+                    className="bg-black/20 p-4 rounded-2xl flex justify-between"
+                  >
 
-                    className="w-full p-4 rounded-2xl bg-white/10 border border-white/10 outline-none"
+                    <div>
 
-                    placeholder="Scan / Enter Barcode"
-                  />
+                      <p className="font-bold">
+                        {item.barcode}
+                      </p>
 
-                </div>
+                      <p className="text-sm text-gray-400">
+                        {item.status}
+                      </p>
 
-                {/* OCR SCANNER */}
+                    </div>
 
-                <OCRScanner
-                  onDetected={(barcode) => {
+                  </div>
 
-                    const updated = [...items];
+                )
+              )}
 
-                    updated[index].barcode =
-                      barcode;
-
-                    setItems(updated);
-
-                    fetchInventoryData(
-                      barcode,
-                      index
-                    );
-                  }}
-                />
-
-                <div>
-
-                  <label className="block mb-2 font-semibold">
-                    Weight
-                  </label>
-
-                  <input
-                    type="number"
-                    value={item.weight}
-
-                    onChange={(e) =>
-                      handleItemChange(
-                        index,
-                        "weight",
-                        e.target.value
-                      )
-                    }
-
-                    className="w-full p-4 rounded-2xl bg-white/10 border border-white/10 outline-none"
-
-                    placeholder="Weight"
-                  />
-
-                </div>
-
-                <button
-                  onClick={() =>
-                    removeItem(index)
-                  }
-                  className="bg-red-500 px-5 py-3 rounded-2xl font-bold"
-                >
-                  Remove
-                </button>
-
-              </div>
-
-            ))}
-
-            <button
-              onClick={addItem}
-              className="bg-gradient-to-r from-pink-500 to-purple-500 px-6 py-4 rounded-2xl font-bold"
-            >
-              Add Barcode
-            </button>
+            </div>
 
           </div>
 
@@ -353,45 +327,71 @@ function NewTransaction() {
 
         {mode === "pcs" && (
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mb-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-8">
 
-            <div>
+            <input
+              type="number"
+              placeholder="Total Pieces"
+              value={
+                pcsTracking.totalPieces
+              }
+              onChange={(e) =>
+                setPcsTracking({
+                  ...pcsTracking,
+                  totalPieces:
+                    e.target.value,
+                })
+              }
+              className="p-4 rounded-2xl bg-black/20"
+            />
 
-              <label className="block mb-2 font-semibold">
-                Total PCS
-              </label>
+            <input
+              type="number"
+              placeholder="Total Weight"
+              value={
+                pcsTracking.totalWeight
+              }
+              onChange={(e) =>
+                setPcsTracking({
+                  ...pcsTracking,
+                  totalWeight:
+                    e.target.value,
+                })
+              }
+              className="p-4 rounded-2xl bg-black/20"
+            />
 
-              <input
-                type="number"
-                value={totalPieces}
-                onChange={(e) =>
-                  setTotalPieces(
-                    e.target.value
-                  )
-                }
-                className="w-full p-4 rounded-2xl bg-white/10 border border-white/10 outline-none"
-              />
+            <input
+              type="number"
+              placeholder="Returned Pieces"
+              value={
+                pcsTracking.returnedPieces
+              }
+              onChange={(e) =>
+                setPcsTracking({
+                  ...pcsTracking,
+                  returnedPieces:
+                    e.target.value,
+                })
+              }
+              className="p-4 rounded-2xl bg-black/20"
+            />
 
-            </div>
-
-            <div>
-
-              <label className="block mb-2 font-semibold">
-                Total Weight
-              </label>
-
-              <input
-                type="number"
-                value={totalWeight}
-                onChange={(e) =>
-                  setTotalWeight(
-                    e.target.value
-                  )
-                }
-                className="w-full p-4 rounded-2xl bg-white/10 border border-white/10 outline-none"
-              />
-
-            </div>
+            <input
+              type="number"
+              placeholder="Returned Weight"
+              value={
+                pcsTracking.returnedWeight
+              }
+              onChange={(e) =>
+                setPcsTracking({
+                  ...pcsTracking,
+                  returnedWeight:
+                    e.target.value,
+                })
+              }
+              className="p-4 rounded-2xl bg-black/20"
+            />
 
           </div>
 
@@ -401,14 +401,9 @@ function NewTransaction() {
 
         <button
           onClick={handleSubmit}
-          disabled={loading}
-          className="w-full bg-gradient-to-r from-pink-500 via-orange-500 to-purple-500 py-4 rounded-2xl font-bold text-lg"
+          className="mt-8 bg-gradient-to-r from-pink-500 to-purple-500 px-8 py-4 rounded-2xl font-bold"
         >
-
-          {loading
-            ? "Saving..."
-            : "Create Transaction"}
-
+          Save Transaction
         </button>
 
       </div>

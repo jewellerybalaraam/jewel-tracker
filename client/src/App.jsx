@@ -12,6 +12,8 @@ import Transactions from "./pages/Transactions";
 import BarcodeSearch from "./pages/BarcodeSearch";
 import CustomerHistory from "./pages/CustomerHistory";
 import UploadInventory from "./pages/UploadInventory";
+import Clients from "./pages/Clients";
+import PendingClients from "./pages/PendingClients";
 
 function App() {
 
@@ -49,6 +51,16 @@ function App() {
             path="customer-history"
             element={<CustomerHistory />}
           />
+
+          <Route
+  path="/clients"
+  element={<Clients />}
+/>
+
+<Route
+  path="/pending-clients"
+  element={<PendingClients />}
+/>
 
         </Route>
 
