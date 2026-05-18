@@ -24,12 +24,13 @@ const uploadInventory =
         workbook.Sheets[sheetName];
 
       const data =
-        XLSX.utils.sheet_to_json(
-          sheet,
-          {
-            defval: "",
-          }
-        );
+  XLSX.utils.sheet_to_json(
+    sheet,
+    {
+      defval: "",
+      range: 4,
+    }
+  );
 
       console.log(data[0]);
 
