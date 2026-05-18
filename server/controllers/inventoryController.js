@@ -1,5 +1,5 @@
-const Inventory = require("../models/Inventory");
 const XLSX = require("xlsx");
+const Inventory = require("../models/Inventory");
 
 const uploadInventory = async (
   req,
@@ -8,51 +8,71 @@ const uploadInventory = async (
 
   try {
 
-    const workbook = XLSX.read(
-      req.file.buffer,
-      {
-        type: "buffer",
-      }
-    );
+    const workbook =
+      XLSX.read(
+        req.file.buffer,
+        {
+          type: "buffer",
+        }
+      );
 
     const sheetName =
       workbook.SheetNames[0];
 
-    const data = XLSX.utils.sheet_to_json(
-      workbook.Sheets[sheetName]
+    const sheet =
+      workbook.Sheets[sheetName];
+
+    const data =
+      XLSX.utils.sheet_to_json(
+        sheet
+      );
+
+    const formattedData =
+      data.map((row) => ({
+        lotNo:
+          row["LOT NO"] || "",
+
+        productName:
+          row["PRODUCTNAME"] || "",
+
+        pcs:
+          Number(
+            row["LOT PCS"]
+          ) || 0,
+
+        weight:
+          Number(
+            row["LOT NET WT"]
+          ) || 0,
+
+        balancePcs:
+          Number(
+            row["BAL PCS"]
+          ) || 0,
+
+        balanceWeight:
+          Number(
+            row["BAL NET WT"]
+          ) || 0,
+
+        designerName:
+          row["DESIGNER NAME"] ||
+          "",
+
+        lotDate:
+          row["LOTDATE"] || "",
+      }));
+
+    await Inventory.insertMany(
+      formattedData
     );
-
-    let inserted = 0;
-
-    for (const item of data) {
-
-      const exists =
-        await Inventory.findOne({
-          barcode: item.barcode || "",
-        });
-
-      if (!exists) {
-
-        await Inventory.create({
-          barcode: item.barcode,
-          productName:
-            item.productName,
-
-          weight: Number(item.weight) || 0,
-pcs: Number(item.pcs) || 0,
-
-          purity: item.purity,
-
-          category: item.category,
-        });
-
-        inserted++;
-      }
-    }
 
     res.json({
       success: true,
-      inserted,
+      message:
+        "Inventory Uploaded Successfully",
+      count:
+        formattedData.length,
     });
 
   } catch (error) {
@@ -61,44 +81,36 @@ pcs: Number(item.pcs) || 0,
 
     res.status(500).json({
       success: false,
-      message: "Upload Failed",
+      message:
+        "Upload Failed",
     });
   }
 };
 
-const getInventoryByBarcode = async (
-  req,
-  res
-) => {
+const getInventory =
+  async (req, res) => {
 
-  try {
+    try {
 
-    const item =
-      await Inventory.findOne({
-        barcode: req.params.barcode,
-      });
+      const inventory =
+        await Inventory.find().sort({
+          createdAt: -1,
+        });
 
-    if (!item) {
+      res.json(inventory);
 
-      return res.status(404).json({
-        message: "Item not found",
+    } catch (error) {
+
+      console.log(error);
+
+      res.status(500).json({
+        message:
+          "Failed to Fetch Inventory",
       });
     }
-
-    res.json(item);
-
-  } catch (error) {
-
-    console.log(error);
-
-    res.status(500).json({
-      success: false,
-      message: "Fetch Failed",
-    });
-  }
-};
+  };
 
 module.exports = {
   uploadInventory,
-  getInventoryByBarcode,
+  getInventory,
 };

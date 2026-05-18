@@ -48,7 +48,7 @@ function Sidebar() {
     {
   name: "Upload Inventory",
   path: "/upload-inventory",
-  icon: <FaPlusCircle />,
+  icon: <FaPlusCircle />
 }
   ];
 

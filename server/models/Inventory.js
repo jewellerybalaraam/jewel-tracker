@@ -1,42 +1,27 @@
 const mongoose = require("mongoose");
 
-const inventorySchema = new mongoose.Schema({
-  barcode: {
-    type: String,
-    required: true,
-    unique: true,
-  },
+const inventorySchema = new mongoose.Schema(
+  {
+    lotNo: String,
 
-  productName: {
-    type: String,
-    default: "",
-  },
+    productName: String,
 
-  weight: {
-    type: Number,
-    default: 0,
-  },
+    pcs: Number,
 
-  pcs: {
-    type: Number,
-    default: 0,
-  },
+    weight: Number,
 
-  purity: {
-    type: String,
-    default: "",
-  },
+    balancePcs: Number,
 
-  category: {
-    type: String,
-    default: "",
-  },
+    balanceWeight: Number,
 
-  createdAt: {
-    type: Date,
-    default: Date.now,
+    designerName: String,
+
+    lotDate: String,
   },
-});
+  {
+    timestamps: true,
+  }
+);
 
 module.exports = mongoose.model(
   "Inventory",

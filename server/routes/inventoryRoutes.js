@@ -1,16 +1,18 @@
 const express = require("express");
+
 const multer = require("multer");
+
+const router = express.Router();
 
 const {
   uploadInventory,
-  getInventoryByBarcode,
+  getInventory,
 } = require(
   "../controllers/inventoryController"
 );
 
-const router = express.Router();
-
-const storage = multer.memoryStorage();
+const storage =
+  multer.memoryStorage();
 
 const upload = multer({
   storage,
@@ -23,8 +25,8 @@ router.post(
 );
 
 router.get(
-  "/:barcode",
-  getInventoryByBarcode
+  "/",
+  getInventory
 );
 
 module.exports = router;
