@@ -9,17 +9,6 @@ const uploadInventory =
 
     try {
 
-      // CHECK FILE EXISTS
-      if (!req.file) {
-
-        return res.status(400).json({
-          success: false,
-          message:
-            "No file uploaded",
-        });
-      }
-
-      // READ EXCEL FILE
       const workbook =
         XLSX.read(
           req.file.buffer,
@@ -36,59 +25,64 @@ const uploadInventory =
 
       const data =
         XLSX.utils.sheet_to_json(
-          sheet
+          sheet,
+          {
+            defval: "",
+          }
         );
 
-      // FORMAT DATA
+      console.log(data[0]);
+
       const formattedData =
-        data.map((row) => ({
+        data.map((row) => {
 
-          lotNo:
-            row["LOT NO"] || "",
+          const keys =
+            Object.keys(row);
 
-          productName:
-            row["PRODUCTNAME"] || "",
+          return {
 
-          pcs:
-            Number(
-              row["LOT PCS"]
-            ) || 0,
+            lotNo:
+              row[keys[0]] || "",
 
-          weight:
-            Number(
-              row["LOT NET WT"]
-            ) || 0,
+            productName:
+              row[keys[1]] || "",
 
-          balancePcs:
-            Number(
-              row["BAL PCS"]
-            ) || 0,
+            pcs:
+              Number(
+                row[keys[2]]
+              ) || 0,
 
-          balanceWeight:
-            Number(
-              row["BAL NET WT"]
-            ) || 0,
+            weight:
+              Number(
+                row[keys[3]]
+              ) || 0,
 
-          designerName:
-            row["DESIGNER NAME"] ||
-            "",
+            balancePcs:
+              Number(
+                row[keys[4]]
+              ) || 0,
 
-          lotDate:
-            row["LOTDATE"] || "",
-        }));
+            balanceWeight:
+              Number(
+                row[keys[5]]
+              ) || 0,
 
-      // REMOVE OLD INVENTORY
-      await Inventory.deleteMany({});
+            designerName:
+              row[keys[6]] || "",
 
-      // INSERT NEW INVENTORY
+            lotDate:
+              row[keys[7]] || "",
+          };
+        });
+
+      await Inventory.deleteMany();
+
       await Inventory.insertMany(
         formattedData
       );
 
       res.json({
         success: true,
-        message:
-          "Inventory Uploaded Successfully",
         count:
           formattedData.length,
       });
@@ -99,8 +93,6 @@ const uploadInventory =
 
       res.status(500).json({
         success: false,
-        message:
-          "Upload Failed",
       });
     }
   };
@@ -111,9 +103,7 @@ const getInventory =
     try {
 
       const inventory =
-        await Inventory.find().sort({
-          createdAt: -1,
-        });
+        await Inventory.find();
 
       res.json(inventory);
 
@@ -123,8 +113,6 @@ const getInventory =
 
       res.status(500).json({
         success: false,
-        message:
-          "Failed to Fetch Inventory",
       });
     }
   };

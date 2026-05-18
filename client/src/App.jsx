@@ -2,124 +2,126 @@ import {
   BrowserRouter,
   Routes,
   Route,
-  Navigate,
 } from "react-router-dom";
 
-import MainLayout from "./layout/MainLayout";
+import {
+  useEffect,
+  useState,
+} from "react";
+
+import Sidebar from "./components/Sidebar";
+
+import SplashScreen from "./components/SplashScreen";
 
 import Dashboard from "./pages/Dashboard";
-import NewTransaction from "./pages/NewTransaction";
+
 import Transactions from "./pages/Transactions";
+
+import NewTransaction from "./pages/NewTransaction";
+
 import BarcodeSearch from "./pages/BarcodeSearch";
+
 import CustomerHistory from "./pages/CustomerHistory";
+
 import UploadInventory from "./pages/UploadInventory";
-import Clients from "./pages/Clients";
-import PendingClients from "./pages/PendingClients";
-import Login from "./pages/Login";
-import UserManagement from "./pages/UserManagement";
-
-function ProtectedRoute({
-  children,
-}) {
-
-  const token =
-    localStorage.getItem("token");
-
-  if (!token) {
-    return <Navigate to="/login" />;
-  }
-
-  return children;
-}
 
 function App() {
+
+  const [loading, setLoading] =
+    useState(true);
+
+  useEffect(() => {
+
+    const loadApp = async () => {
+
+      const start =
+        Date.now();
+
+      try {
+
+        await fetch(
+          import.meta.env.VITE_API_URL
+        );
+
+      } catch (error) {
+
+        console.log(error);
+      }
+
+      const elapsed =
+        Date.now() - start;
+
+      const remaining =
+        Math.max(
+          5000 - elapsed,
+          0
+        );
+
+      setTimeout(() => {
+
+        setLoading(false);
+
+      }, remaining);
+    };
+
+    loadApp();
+
+  }, []);
+
+  if (loading) {
+
+    return (
+      <SplashScreen show={true} />
+    );
+  }
 
   return (
 
     <BrowserRouter>
 
-      <Routes>
+      <div className="min-h-screen bg-black text-white flex flex-col lg:flex-row">
 
-        {/* LOGIN */}
+        <Sidebar />
 
-        <Route
-          path="/login"
-          element={<Login />}
-        />
+        <div className="flex-1 p-4">
 
-        {/* PROTECTED */}
+          <Routes>
 
-        <Route
-          path="/"
-          element={
-            <ProtectedRoute>
-              <MainLayout />
-            </ProtectedRoute>
-          }
-        >
+            <Route
+              path="/"
+              element={<Dashboard />}
+            />
 
-          <Route
-            index
-            element={<Dashboard />}
-          />
+            <Route
+              path="/new"
+              element={<NewTransaction />}
+            />
 
-          <Route
-            path="new"
-            element={
-              <NewTransaction />
-            }
-          />
+            <Route
+              path="/transactions"
+              element={<Transactions />}
+            />
 
-          <Route
-            path="transactions"
-            element={
-              <Transactions />
-            }
-          />
+            <Route
+              path="/barcode-search"
+              element={<BarcodeSearch />}
+            />
 
-          <Route
-            path="barcode-search"
-            element={
-              <BarcodeSearch />
-            }
-          />
+            <Route
+              path="/customer-history"
+              element={<CustomerHistory />}
+            />
 
-          <Route
-            path="customer-history"
-            element={
-              <CustomerHistory />
-            }
-          />
+            <Route
+              path="/upload-inventory"
+              element={<UploadInventory />}
+            />
 
-          <Route
-            path="upload-inventory"
-            element={
-              <UploadInventory />
-            }
-          />
+          </Routes>
 
-          <Route
-            path="clients"
-            element={<Clients />}
-          />
+        </div>
 
-          <Route
-            path="pending-clients"
-            element={
-              <PendingClients />
-            }
-          />
-
-          <Route
-            path="users"
-            element={
-              <UserManagement />
-            }
-          />
-
-        </Route>
-
-      </Routes>
+      </div>
 
     </BrowserRouter>
   );

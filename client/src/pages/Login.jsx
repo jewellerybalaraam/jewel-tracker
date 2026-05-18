@@ -1,136 +1,75 @@
 import { useState } from "react";
 
-import axios from "axios";
+import { useNavigate }
+from "react-router-dom";
 
-import { useNavigate } from "react-router-dom";
+import { useAuth }
+from "../context/AuthContext";
 
 function Login() {
 
-  const navigate =
-    useNavigate();
+const navigate =
+useNavigate();
 
-  const [username, setUsername] =
-    useState("");
+const { login } =
+useAuth();
 
-  const [password, setPassword] =
-    useState("");
+const [password, setPassword] =
+useState("");
 
-  const getDeviceId = () => {
+const handleLogin = () => {
 
-    let deviceId =
-      localStorage.getItem(
-        "deviceId"
-      );
+if (password === "1234") {
 
-    if (!deviceId) {
+  login();
 
-      deviceId =
-        crypto.randomUUID();
+  navigate("/");
 
-      localStorage.setItem(
-        "deviceId",
-        deviceId
-      );
-    }
+} else {
 
-    return deviceId;
-  };
+  alert("Wrong Password");
+}
 
-  const handleLogin =
-    async () => {
+};
 
-      try {
+return (
 
-        const deviceId =
-          getDeviceId();
+<div className="min-h-screen flex items-center justify-center bg-black px-4">
 
-        const res =
-          await axios.post(
-            `${import.meta.env.VITE_API_URL}/api/auth/login`,
-            {
-              username,
-              password,
-              deviceId,
-            }
-          );
+  <div className="w-full max-w-md bg-white/5 border border-white/10 backdrop-blur-xl rounded-3xl p-8">
 
-        localStorage.setItem(
-          "token",
-          res.data.token
-        );
+    <h1 className="text-5xl font-black bg-gradient-to-r from-pink-400 via-orange-400 to-purple-500 bg-clip-text text-transparent mb-10 text-center">
 
-        localStorage.setItem(
-          "user",
-          JSON.stringify(
-            res.data.user
-          )
-        );
+      Jewel ERP
 
-        navigate("/");
+    </h1>
 
-      } catch (error) {
-
-        console.log(error);
-
-        alert(
-          error?.response?.data
-            ?.message ||
-            "Login Failed"
-        );
+    <input
+      type="password"
+      placeholder="Enter Password"
+      value={password}
+      onChange={(e) =>
+        setPassword(
+          e.target.value
+        )
       }
-    };
+      className="w-full p-4 rounded-2xl bg-white/10 border border-white/10 outline-none mb-6"
+    />
 
-  return (
+    <button
+      onClick={handleLogin}
+      className="w-full py-4 rounded-2xl font-bold bg-gradient-to-r from-pink-500 to-purple-500"
+    >
 
-    <div className="min-h-screen flex items-center justify-center p-6">
+      Login
 
-      <div className="bg-white/5 p-8 rounded-3xl border border-white/10 w-full max-w-md">
+    </button>
 
-        <h1 className="text-4xl font-bold text-pink-400 mb-8 text-center">
-          Jewel ERP Login
-        </h1>
+  </div>
 
-        <div className="space-y-4">
+</div>
 
-          <input
-            type="text"
-            placeholder="Username"
-            value={username}
-            onChange={(e) =>
-              setUsername(
-                e.target.value
-              )
-            }
-            className="w-full p-4 rounded-2xl bg-black/20"
-          />
-
-          <input
-            type="password"
-            placeholder="Password"
-            value={password}
-            onChange={(e) =>
-              setPassword(
-                e.target.value
-              )
-            }
-            className="w-full p-4 rounded-2xl bg-black/20"
-          />
-
-          <button
-            onClick={
-              handleLogin
-            }
-            className="w-full bg-gradient-to-r from-pink-500 to-purple-500 py-4 rounded-2xl font-bold"
-          >
-            Login
-          </button>
-
-        </div>
-
-      </div>
-
-    </div>
-  );
+);
 }
 
 export default Login;
