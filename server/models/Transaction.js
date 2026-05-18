@@ -14,11 +14,10 @@ const itemSchema = new mongoose.Schema({
 
 const transactionSchema = new mongoose.Schema(
   {
-    customerId: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "Customer",
-      required: true,
-    },
+    customerName: {
+  type: String,
+  required: true,
+},
 
     productName: {
       type: String,

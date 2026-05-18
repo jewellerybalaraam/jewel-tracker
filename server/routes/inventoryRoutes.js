@@ -29,4 +29,23 @@ router.get(
   getInventory
 );
 
+router.get("/:barcode", async (req, res) => {
+
+  try {
+
+    const inventory =
+      await Inventory.findOne({
+        lotNo: req.params.barcode,
+      });
+
+    res.json(inventory);
+
+  } catch (error) {
+
+    res.status(500).json({
+      message: "Inventory Search Failed",
+    });
+  }
+});
+
 module.exports = router;

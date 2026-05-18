@@ -129,7 +129,7 @@ function NewTransaction() {
         data
       );
 
-      alert(
+      console.log(
         "Transaction Added Successfully"
       );
 
@@ -151,7 +151,7 @@ function NewTransaction() {
 
       console.log(error);
 
-      alert(
+      console.log(
         "Failed To Add Transaction"
       );
 

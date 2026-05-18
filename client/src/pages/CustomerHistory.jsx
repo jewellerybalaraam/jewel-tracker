@@ -39,7 +39,7 @@ function CustomerHistory() {
         Customer History
       </h1>
 
-      <div className="grid grid-cols-4 gap-4 mb-8">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
 
         <input
           type="text"

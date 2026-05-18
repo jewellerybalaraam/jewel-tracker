@@ -12,57 +12,58 @@ function BarcodeScanner({ onScan }) {
 
       <Scanner
 
-        constraints={{
-          facingMode: "environment",
-        }}
+  constraints={{
+    facingMode: "environment",
+  }}
 
-        scanDelay={800}
+  scanDelay={800}
 
-        formats={[
-          "qr_code",
-          "data_matrix",
-          "code_128",
-          "ean_13",
-          "ean_8",
-          "upc_a",
-          "upc_e",
-        ]}
+  formats={[
+    "qr_code",
+    "data_matrix",
+    "code_128",
+    "ean_13",
+    "ean_8",
+    "upc_a",
+    "upc_e",
+  ]}
 
-        onScan={(result) => {
+  onScan={(result) => {
 
-          if (
-            scanned ||
-            !result?.[0]?.rawValue
-          ) {
-            return;
-          }
+    if (
+      scanned ||
+      !result?.[0]?.rawValue
+    ) {
+      return;
+    }
 
-          setScanned(true);
+    setScanned(true);
 
-          const scannedValue =
-            result[0].rawValue;
+    const scannedValue =
+      result[0].rawValue;
 
-          onScan(scannedValue);
+    onScan(scannedValue);
 
-          setTimeout(() => {
-            setScanned(false);
-          }, 2000);
-        }}
+    setTimeout(() => {
+      setScanned(false);
+    }, 2000);
+  }}
 
-        onError={(error) => {
-          console.log(
-            "Scanner Error:",
-            error
-          );
-        }}
+  onError={(error) => {
+    console.log(
+      "Scanner Error:",
+      error
+    );
+  }}
 
-        styles={{
-          container: {
-            width: "100%",
-            borderRadius: "24px",
-          },
-        }}
-      />
+  styles={{
+    container: {
+      width: "100%",
+      height: "500px",
+      borderRadius: "24px",
+    },
+  }}
+/>
 
     </div>
   );

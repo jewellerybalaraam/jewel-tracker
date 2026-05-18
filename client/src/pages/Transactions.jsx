@@ -135,19 +135,19 @@ function Transactions() {
         {filteredTransactions.map((t) => {
 
           const totalPcs =
-            t.totalPcs || 0;
+  t.pcsTracking?.totalPieces || 0;
 
           const returnedPcs =
-            t.returnedPcs || 0;
+  t.pcsTracking?.returnedPieces || 0;
 
           const soldPcs =
             totalPcs - returnedPcs;
 
           const totalWeight =
-            t.totalWeight || 0;
+  t.pcsTracking?.totalWeight || 0;
 
           const returnedWeight =
-            t.returnedWeight || 0;
+  t.pcsTracking?.returnedWeight || 0;
 
           const soldWeight =
             (

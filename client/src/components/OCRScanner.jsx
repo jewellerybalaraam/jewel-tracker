@@ -44,7 +44,7 @@ function OCRScanner({ onDetected }) {
 
       console.log(error);
 
-      alert("OCR Failed");
+      console.log("OCR Failed");
 
     } finally {
 
