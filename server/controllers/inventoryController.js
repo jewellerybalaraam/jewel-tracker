@@ -4,6 +4,15 @@ const Inventory = require(
   "../models/Inventory"
 );
 
+const cleanKey = (key) => {
+
+  return key
+    ?.toString()
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, "");
+};
+
 const uploadInventory =
   async (req, res) => {
 
@@ -23,56 +32,61 @@ const uploadInventory =
       const sheet =
         workbook.Sheets[sheetName];
 
-      const data =
-  XLSX.utils.sheet_to_json(
-    sheet,
-    {
-      defval: "",
-      range: 4,
-    }
-  );
-
-      console.log(data[0]);
+      const rawData =
+        XLSX.utils.sheet_to_json(
+          sheet,
+          {
+            defval: "",
+          }
+        );
 
       const formattedData =
-        data.map((row) => {
+        rawData.map((row) => {
 
-          const keys =
-            Object.keys(row);
+          const cleanedRow = {};
+
+          Object.keys(row).forEach(
+            (key) => {
+
+              cleanedRow[
+                cleanKey(key)
+              ] = row[key];
+            }
+          );
 
           return {
 
             lotNo:
-              row[keys[0]] || "",
+              cleanedRow.lotno || "",
 
             productName:
-              row[keys[1]] || "",
+              cleanedRow.productname || "",
 
             pcs:
               Number(
-                row[keys[2]]
+                cleanedRow.pcs
               ) || 0,
 
             weight:
               Number(
-                row[keys[3]]
+                cleanedRow.weight
               ) || 0,
 
             balancePcs:
               Number(
-                row[keys[4]]
+                cleanedRow.balancepcs
               ) || 0,
 
             balanceWeight:
               Number(
-                row[keys[5]]
+                cleanedRow.balanceweight
               ) || 0,
 
             designerName:
-              row[keys[6]] || "",
+              cleanedRow.designername || "",
 
             lotDate:
-              row[keys[7]] || "",
+              cleanedRow.lotdate || "",
           };
         });
 
