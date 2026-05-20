@@ -1,91 +1,69 @@
-import { useState } from "react";
-import axios from "axios";
+import { useState } from 'react'
+import axios from 'axios'
 
-function UploadInventory() {
+const UploadInventory = () => {
 
-  const [file, setFile] =
-    useState(null);
+  const [file, setFile] = useState(null)
 
-  const [message, setMessage] =
-    useState("");
+  const [message, setMessage] = useState('')
 
-  const handleUpload =
-    async () => {
+  const handleUpload = async () => {
 
-      if (!file) {
-        return;
-      }
+    if (!file) {
+      alert('Select file')
+      return
+    }
 
-      const formData =
-        new FormData();
+    try {
 
-      formData.append(
-        "file",
-        file
-      );
+      const formData = new FormData()
 
-      try {
+      formData.append('file', file)
 
-        const res =
-          await axios.post(
-            `${import.meta.env.VITE_API_URL}/api/inventory/upload`,
-            formData
-          );
+      const res = await axios.post(
+        'https://jewel-tracker.onrender.com//api/inventory/upload',
+        formData,
+        {
+          headers: {
+            'Content-Type': 'multipart/form-data'
+          }
+        }
+      )
 
-        setMessage(
-          res.data.message
-        );
+      setMessage(res.data.message)
 
-      } catch (error) {
+    } catch (err) {
 
-        console.log(error);
+      console.log(err)
 
-        setMessage(
-          "Upload Failed"
-        );
-      }
-    };
+      setMessage('Upload failed')
+    }
+  }
 
   return (
 
-    <div className="p-6">
+    <div style={{ padding: '20px' }}>
 
-      <div className="bg-white/5 p-6 rounded-3xl border border-white/10 max-w-2xl mx-auto">
+      <h2>Upload Inventory</h2>
 
-        <h1 className="text-3xl font-bold mb-6 text-pink-400">
-          Upload Inventory
-        </h1>
+      <input
+        type="file"
+        accept=".xlsx,.xls"
+        onChange={(e) =>
+          setFile(e.target.files[0])
+        }
+      />
 
-        <input
-          type="file"
-          accept=".xlsx,.xls"
-          onChange={(e) =>
-            setFile(
-              e.target.files[0]
-            )
-          }
-          className="mb-6 w-full"
-        />
+      <br /><br />
 
-        <button
-          onClick={handleUpload}
-          className="bg-gradient-to-r from-pink-500 to-purple-500 px-6 py-3 rounded-2xl font-bold"
-        >
-          Upload Excel
-        </button>
+      <button onClick={handleUpload}>
+        Upload
+      </button>
 
-        {message && (
-
-          <p className="mt-5 text-green-400">
-            {message}
-          </p>
-
-        )}
-
-      </div>
+      <p>{message}</p>
 
     </div>
-  );
+  )
 }
 
-export default UploadInventory;
+export default UploadInventory

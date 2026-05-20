@@ -1,29 +1,78 @@
-const mongoose = require("mongoose");
+import mongoose from 'mongoose'
 
 const inventorySchema = new mongoose.Schema(
   {
-    lotNo: String,
+    barcode: {
+      type: String,
+      required: true,
+      unique: true,
+      index: true
+    },
 
-    productName: String,
+    lotNo: {
+      type: Number,
+      required: true
+    },
 
-    pcs: Number,
+    tagNo: {
+      type: Number,
+      required: true
+    },
 
-    weight: Number,
+    productId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Product',
+      required: true
+    },
 
-    balancePcs: Number,
+    supplier: {
+      type: String
+    },
 
-    balanceWeight: Number,
+    grossWeight: {
+      type: Number,
+      required: true
+    },
 
-    designerName: String,
+    netWeight: {
+      type: Number,
+      required: true
+    },
 
-    lotDate: String,
+    boardRate: {
+      type: Number,
+      default: 0
+    },
+
+    mcPerGram: {
+      type: Number,
+      default: 0
+    },
+
+    mcAmount: {
+      type: Number,
+      default: 0
+    },
+
+    salePrice: {
+      type: Number,
+      default: 0
+    },
+
+    size: {
+      type: String,
+      default: ''
+    },
+
+    status: {
+      type: String,
+      enum: ['AVAILABLE', 'SOLD'],
+      default: 'AVAILABLE'
+    }
   },
   {
-    timestamps: true,
+    timestamps: true
   }
-);
+)
 
-module.exports = mongoose.model(
-  "Inventory",
-  inventorySchema
-);
+export default mongoose.model('Inventory', inventorySchema)

@@ -1,51 +1,36 @@
-const express = require("express");
+// server/routes/inventoryRoutes.js
 
-const multer = require("multer");
+import express from 'express'
 
-const router = express.Router();
+import upload from '../middleware/upload.js'
 
-const {
+import {
   uploadInventory,
-  getInventory,
-} = require(
-  "../controllers/inventoryController"
-);
+  getInventoryByBarcode
+} from '../controllers/inventoryController.js'
 
-const storage =
-  multer.memoryStorage();
+const router = express.Router()
 
-const upload = multer({
-  storage,
-});
+
+// =====================================
+// UPLOAD INVENTORY EXCEL
+// =====================================
 
 router.post(
-  "/upload",
-  upload.single("file"),
+  '/upload',
+  upload.single('file'),
   uploadInventory
-);
+)
+
+
+// =====================================
+// GET INVENTORY USING BARCODE
+// =====================================
 
 router.get(
-  "/",
-  getInventory
-);
+  '/barcode/:barcode',
+  getInventoryByBarcode
+)
 
-router.get("/:barcode", async (req, res) => {
 
-  try {
-
-    const inventory =
-      await Inventory.findOne({
-        lotNo: req.params.barcode,
-      });
-
-    res.json(inventory);
-
-  } catch (error) {
-
-    res.status(500).json({
-      message: "Inventory Search Failed",
-    });
-  }
-});
-
-module.exports = router;
+export default router

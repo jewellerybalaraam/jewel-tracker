@@ -1,384 +1,304 @@
+// client/src/pages/NewTransaction.jsx
 
-import {
-  useEffect,
-  useRef,
-  useState,
-} from "react";
+import { useState } from 'react'
+import axios from 'axios'
 
-import axios from "axios";
+const NewTransaction = () => {
 
-import BarcodeScanner from "../components/BarcodeScanner";
+  const [barcode, setBarcode] = useState('')
 
-function NewTransaction() {
+  const [productName, setProductName] = useState('')
 
-  const [customerName, setCustomerName] =
-    useState("");
+  const [subProductName, setSubProductName] =
+    useState('')
 
-  const [storeName, setStoreName] =
-    useState("");
+  const [grossWeight, setGrossWeight] =
+    useState('')
 
-  const [whatsappNumber, setWhatsappNumber] =
-    useState("");
+  const [netWeight, setNetWeight] =
+    useState('')
 
-  const [productName, setProductName] =
-    useState("");
+  const [size, setSize] = useState('')
 
-  const [mode, setMode] =
-    useState("barcode");
+  const [salePrice, setSalePrice] =
+    useState('')
 
-  const [barcode, setBarcode] =
-    useState("");
+  const [boardRate, setBoardRate] =
+    useState('')
 
-  const [weight, setWeight] =
-    useState("");
+  const [loading, setLoading] =
+    useState(false)
 
-  const [items, setItems] =
-    useState([]);
+  const [error, setError] =
+    useState('')
 
-  const [totalPcs, setTotalPcs] =
-    useState("");
 
-  const [totalWeight, setTotalWeight] =
-    useState("");
+  // =====================================
+  // FETCH INVENTORY USING BARCODE
+  // =====================================
 
-  const barcodeInputRef =
-    useRef(null);
+  const handleBarcodeChange = async (e) => {
 
-  useEffect(() => {
+    const value = e.target.value
 
-    if (
-      barcodeInputRef.current
-    ) {
+    setBarcode(value)
 
-      barcodeInputRef.current.focus();
+    setError('')
+
+    // CLEAR IF EMPTY
+    if (!value) {
+
+      setProductName('')
+      setSubProductName('')
+      setGrossWeight('')
+      setNetWeight('')
+      setSize('')
+      setSalePrice('')
+      setBoardRate('')
+
+      return
     }
 
-  }, []);
-
-  const addBarcode = () => {
-
-    if (!barcode) {
-      return;
-    }
-
-    const exists = items.some(
-      (item) =>
-        item.barcode === barcode
-    );
-
-    if (exists) {
-
-      alert(
-        "Barcode already added"
-      );
-
-      return;
-    }
-
-    setItems([
-      ...items,
-      {
-        barcode,
-        weight,
-        status: "PENDING",
-      },
-    ]);
-
-    setBarcode("");
-    setWeight("");
-
-    setTimeout(() => {
-
-      barcodeInputRef.current?.focus();
-
-    }, 100);
-  };
-
-  const handleSubmit = async () => {
+    // WAIT MINIMUM LENGTH
+    if (value.length < 4) return
 
     try {
 
-      const payload = {
+      setLoading(true)
 
-        customerName,
+      const res = await axios.get(
+        `https://jewel-tracker.onrender.com//api/inventory/barcode/${value}`
+      )
 
-        storeName,
+      const item = res.data.data
 
-        whatsappNumber,
+      setProductName(item.productName)
 
-        productName,
+      setSubProductName(
+        item.subProductName
+      )
 
-        mode,
+      setGrossWeight(
+        item.grossWeight
+      )
 
-        items,
+      setNetWeight(
+        item.netWeight
+      )
 
-        totalPcs,
+      setSize(item.size)
 
-        totalWeight,
+      setSalePrice(
+        item.salePrice
+      )
 
-        returnedPcs: 0,
+      setBoardRate(
+        item.boardRate
+      )
 
-        returnedWeight: 0,
-      };
+    } catch (err) {
 
-      await axios.post(
-        `${import.meta.env.VITE_API_URL}/api/transactions`,
-        payload
-      );
+      console.log(err)
 
-      alert(
-        "Transaction Added Successfully"
-      );
+      setError('Item not found')
 
-      setCustomerName("");
-      setStoreName("");
-      setWhatsappNumber("");
-      setProductName("");
-      setBarcode("");
-      setWeight("");
-      setItems([]);
-      setTotalPcs("");
-      setTotalWeight("");
+      setProductName('')
+      setSubProductName('')
+      setGrossWeight('')
+      setNetWeight('')
+      setSize('')
+      setSalePrice('')
+      setBoardRate('')
 
-    } catch (error) {
+    } finally {
 
-      console.log(error);
-
-      alert(
-        "Failed to Add Transaction"
-      );
+      setLoading(false)
     }
-  };
+  }
+
 
   return (
 
-    <div className="p-4 sm:p-6 md:p-8 min-h-screen text-white">
+    <div
+      style={{
+        padding: '20px',
+        maxWidth: '500px'
+      }}
+    >
 
-      <div className="max-w-6xl mx-auto bg-white/5 backdrop-blur-xl border border-white/10 rounded-3xl p-6 md:p-8 shadow-2xl">
+      <h2>New Transaction</h2>
 
-        <h1 className="text-3xl md:text-4xl font-black bg-gradient-to-r from-pink-400 via-orange-400 to-purple-500 bg-clip-text text-transparent mb-8">
 
-          New Transaction
+      {/* BARCODE */}
 
-        </h1>
+      <div style={{ marginBottom: '15px' }}>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+        <label>Barcode</label>
 
-          <input
-            type="text"
-            placeholder="Customer Name"
-            value={customerName}
-            onChange={(e) =>
-              setCustomerName(
-                e.target.value
-              )
-            }
-            className="p-4 rounded-2xl bg-white/10 border border-white/10 outline-none"
-          />
+        <input
+          type="text"
+          placeholder="Enter Barcode"
+          value={barcode}
+          onChange={handleBarcodeChange}
+          style={{
+            width: '100%',
+            padding: '10px'
+          }}
+        />
 
-          <input
-            type="text"
-            placeholder="Store Name"
-            value={storeName}
-            onChange={(e) =>
-              setStoreName(
-                e.target.value
-              )
-            }
-            className="p-4 rounded-2xl bg-white/10 border border-white/10 outline-none"
-          />
+      </div>
 
-          <input
-            type="text"
-            placeholder="WhatsApp Number"
-            value={whatsappNumber}
-            onChange={(e) =>
-              setWhatsappNumber(
-                e.target.value
-              )
-            }
-            className="p-4 rounded-2xl bg-white/10 border border-white/10 outline-none"
-          />
 
-        </div>
+      {/* LOADING */}
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+      {loading && (
+        <p>Loading...</p>
+      )}
 
-          <input
-            type="text"
-            placeholder="Product Name"
-            value={productName}
-            onChange={(e) =>
-              setProductName(
-                e.target.value
-              )
-            }
-            className="p-4 rounded-2xl bg-white/10 border border-white/10 outline-none"
-          />
 
-          <select
-            value={mode}
-            onChange={(e) =>
-              setMode(e.target.value)
-            }
-            className="p-4 rounded-2xl bg-white/10 border border-white/10 outline-none"
-          >
+      {/* ERROR */}
 
-            <option value="barcode">
-              Barcode Mode
-            </option>
+      {error && (
+        <p style={{ color: 'red' }}>
+          {error}
+        </p>
+      )}
 
-            <option value="pcs">
-              PCS Mode
-            </option>
 
-          </select>
+      {/* PRODUCT NAME */}
 
-        </div>
+      <div style={{ marginBottom: '15px' }}>
 
-        {mode === "barcode" && (
+        <label>Product Name</label>
 
-          <>
+        <input
+          type="text"
+          value={productName}
+          readOnly
+          style={{
+            width: '100%',
+            padding: '10px'
+          }}
+        />
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-5">
+      </div>
 
-              <input
-                ref={barcodeInputRef}
-                type="text"
-                placeholder="Scan Barcode"
-                value={barcode}
-                onChange={(e) =>
-                  setBarcode(
-                    e.target.value
-                  )
-                }
-                onKeyDown={(e) => {
 
-                  if (
-                    e.key === "Enter"
-                  ) {
-                    addBarcode();
-                  }
-                }}
-                className="p-4 rounded-2xl bg-white/10 border border-white/10 outline-none"
-              />
+      {/* SUB PRODUCT */}
 
-              <input
-                type="number"
-                placeholder="Weight"
-                value={weight}
-                onChange={(e) =>
-                  setWeight(
-                    e.target.value
-                  )
-                }
-                className="p-4 rounded-2xl bg-white/10 border border-white/10 outline-none"
-              />
+      <div style={{ marginBottom: '15px' }}>
 
-              <button
-                onClick={addBarcode}
-                className="bg-gradient-to-r from-pink-500 to-purple-500 rounded-2xl font-bold"
-              >
+        <label>Sub Product</label>
 
-                Add Barcode
+        <input
+          type="text"
+          value={subProductName}
+          readOnly
+          style={{
+            width: '100%',
+            padding: '10px'
+          }}
+        />
 
-              </button>
+      </div>
 
-            </div>
 
-            <div className="mb-6">
+      {/* GROSS WEIGHT */}
 
-              <BarcodeScanner
-                onScan={(value) => {
-                  setBarcode(value);
-                }}
-              />
+      <div style={{ marginBottom: '15px' }}>
 
-            </div>
+        <label>Gross Weight</label>
 
-            <div className="space-y-3 mb-6">
+        <input
+          type="text"
+          value={grossWeight}
+          readOnly
+          style={{
+            width: '100%',
+            padding: '10px'
+          }}
+        />
 
-              {items.map(
-                (item, index) => (
+      </div>
 
-                  <div
-                    key={index}
-                    className="bg-black/30 rounded-2xl p-4 flex flex-col md:flex-row md:items-center md:justify-between gap-3"
-                  >
 
-                    <div>
+      {/* NET WEIGHT */}
 
-                      <p className="font-bold break-all">
-                        {item.barcode}
-                      </p>
+      <div style={{ marginBottom: '15px' }}>
 
-                      <p className="text-gray-400 text-sm">
-                        {item.weight} g
-                      </p>
+        <label>Net Weight</label>
 
-                    </div>
+        <input
+          type="text"
+          value={netWeight}
+          readOnly
+          style={{
+            width: '100%',
+            padding: '10px'
+          }}
+        />
 
-                    <span className="bg-yellow-400 text-black px-4 py-2 rounded-xl font-bold w-fit">
+      </div>
 
-                      {item.status}
 
-                    </span>
+      {/* SIZE */}
 
-                  </div>
-                )
-              )}
+      <div style={{ marginBottom: '15px' }}>
 
-            </div>
+        <label>Size</label>
 
-          </>
+        <input
+          type="text"
+          value={size}
+          readOnly
+          style={{
+            width: '100%',
+            padding: '10px'
+          }}
+        />
 
-        )}
+      </div>
 
-        {mode === "pcs" && (
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+      {/* SALE PRICE */}
 
-            <input
-              type="number"
-              placeholder="Total PCS"
-              value={totalPcs}
-              onChange={(e) =>
-                setTotalPcs(
-                  e.target.value
-                )
-              }
-              className="p-4 rounded-2xl bg-white/10 border border-white/10 outline-none"
-            />
+      <div style={{ marginBottom: '15px' }}>
 
-            <input
-              type="number"
-              placeholder="Total Weight"
-              value={totalWeight}
-              onChange={(e) =>
-                setTotalWeight(
-                  e.target.value
-                )
-              }
-              className="p-4 rounded-2xl bg-white/10 border border-white/10 outline-none"
-            />
+        <label>Sale Price</label>
 
-          </div>
+        <input
+          type="text"
+          value={salePrice}
+          readOnly
+          style={{
+            width: '100%',
+            padding: '10px'
+          }}
+        />
 
-        )}
+      </div>
 
-        <button
-          onClick={handleSubmit}
-          className="w-full py-4 rounded-2xl font-bold bg-gradient-to-r from-pink-500 via-purple-500 to-orange-400 text-lg"
-        >
 
-          Save Transaction
+      {/* BOARD RATE */}
 
-        </button>
+      <div style={{ marginBottom: '15px' }}>
+
+        <label>Board Rate</label>
+
+        <input
+          type="text"
+          value={boardRate}
+          readOnly
+          style={{
+            width: '100%',
+            padding: '10px'
+          }}
+        />
 
       </div>
 
     </div>
-  );
+  )
 }
 
-export default NewTransaction;
+export default NewTransaction

@@ -1,116 +1,202 @@
-const XLSX = require("xlsx");
+// server/controllers/inventoryController.js
 
-const Inventory = require(
-  "../models/Inventory"
-);
+import XLSX from 'xlsx'
+import fs from 'fs'
+import Inventory from '../models/Inventory.js'
+import Product from '../models/Product.js'
 
-const uploadInventory =
+
+// =====================================
+// UPLOAD INVENTORY EXCEL
+// =====================================
+
+export const uploadInventory = async (req, res) => {
+
+  try {
+
+    if (!req.file) {
+      return res.status(400).json({
+        success: false,
+        message: 'Excel file is required'
+      })
+    }
+
+    const workbook = XLSX.readFile(req.file.path)
+
+    const sheetName = workbook.SheetNames[0]
+
+    const rows = XLSX.utils.sheet_to_json(
+      workbook.Sheets[sheetName]
+    )
+
+    let insertedCount = 0
+
+    for (const row of rows) {
+
+      // SKIP INVALID ROWS
+      if (!row.PROID) continue
+
+      // PRODUCT PREFIX
+      const prefix =
+        row.PREFIX ||
+        row.PREFIXNAME ||
+        'PRD'
+
+      // FIND PRODUCT
+      let product = await Product.findOne({
+        productId: row.PROID
+      })
+
+      // CREATE PRODUCT IF NOT EXISTS
+      if (!product) {
+
+        product = await Product.create({
+          productId: row.PROID,
+
+          prefix,
+
+          productName: row.PRODUCTNAME || '',
+
+          subProductName:
+            row.SUBPRODUCTNAME || '',
+
+          purity: 92.5
+        })
+      }
+
+      // BARCODE
+      const barcode =
+        `${row.LOTNO}${prefix}${row.TAGNO}`
+
+      // CHECK DUPLICATE
+      const existing = await Inventory.findOne({
+        barcode
+      })
+
+      if (existing) {
+        continue
+      }
+
+      // CREATE INVENTORY
+      await Inventory.create({
+
+        barcode,
+
+        lotNo: row.LOTNO || 0,
+
+        tagNo: row.TAGNO || 0,
+
+        productId: product._id,
+
+        supplier: row.DESNAME || '',
+
+        grossWeight: row.GRSWT || 0,
+
+        netWeight: row.NETWT || 0,
+
+        boardRate: row.BOARDRATE || 0,
+
+        mcPerGram: row.MCGR || 0,
+
+        mcAmount: row.MCAMNT || 0,
+
+        salePrice: row.SELPRICE || 0,
+
+        size: row.SIZE || '',
+
+        status: 'AVAILABLE'
+      })
+
+      insertedCount++
+    }
+    fs.unlinkSync(req.file.path)
+
+    res.status(200).json({
+      success: true,
+
+      insertedCount,
+
+      message:
+        'Inventory uploaded successfully'
+    })
+
+  } catch (error) {
+
+    console.log(error)
+
+    res.status(500).json({
+      success: false,
+      message: error.message
+    })
+  }
+}
+
+
+
+// =====================================
+// GET INVENTORY USING BARCODE
+// =====================================
+
+export const getInventoryByBarcode =
   async (req, res) => {
 
     try {
 
-      const workbook =
-        XLSX.read(
-          req.file.buffer,
-          {
-            type: "buffer",
-          }
-        );
+      const { barcode } = req.params
 
-      const sheetName =
-        workbook.SheetNames[0];
+      const item = await Inventory.findOne({
+        barcode,
+        status: 'AVAILABLE'
+      }).populate('productId')
 
-      const sheet =
-        workbook.Sheets[sheetName];
+      if (!item) {
 
-      const data =
-        XLSX.utils.sheet_to_json(
-          sheet,
-          {
-            defval: "",
-            range: 2,
-          }
-        );
+        return res.status(404).json({
+          success: false,
+          message: 'Item not found'
+        })
+      }
 
-      const formattedData =
-        data.map((row) => ({
+      res.status(200).json({
 
-          lotNo:
-            row["LOT NO"] || "",
+        success: true,
+
+        data: {
+
+          _id: item._id,
+
+          barcode: item.barcode,
 
           productName:
-            row["PRODUCTNAME"] || "",
+            item.productId.productName,
 
-          pcs:
-            Number(
-              row["LOT PCS"]
-            ) || 0,
+          subProductName:
+            item.productId.subProductName,
 
-          weight:
-            Number(
-              row["LOT NET WT"]
-            ) || 0,
+          grossWeight:
+            item.grossWeight,
 
-          balancePcs:
-            Number(
-              row["BAL PCS"]
-            ) || 0,
+          netWeight:
+            item.netWeight,
 
-          balanceWeight:
-            Number(
-              row["BAL NET WT"]
-            ) || 0,
+          size:
+            item.size,
 
-          designerName:
-            row["DESIGNER NAME"] || "",
+          salePrice:
+            item.salePrice,
 
-          lotDate:
-            row["LOTDATE"] || "",
-        }));
-
-      await Inventory.deleteMany();
-
-      await Inventory.insertMany(
-        formattedData
-      );
-
-      res.json({
-        success: true,
-        count:
-          formattedData.length,
-      });
+          boardRate:
+            item.boardRate
+        }
+      })
 
     } catch (error) {
 
-      console.log(error);
+      console.log(error)
 
       res.status(500).json({
         success: false,
-      });
+        message: error.message
+      })
     }
-  };
-
-const getInventory =
-  async (req, res) => {
-
-    try {
-
-      const inventory =
-        await Inventory.find();
-
-      res.json(inventory);
-
-    } catch (error) {
-
-      console.log(error);
-
-      res.status(500).json({
-        success: false,
-      });
-    }
-  };
-
-module.exports = {
-  uploadInventory,
-  getInventory,
-};
+  }
