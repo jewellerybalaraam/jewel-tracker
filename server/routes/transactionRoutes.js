@@ -1,31 +1,18 @@
-const express = require(
-  "express"
-);
-
-const router =
-  express.Router();
-
-const {
+import express from 'express'
+import {
   createTransaction,
   getTransactions,
   updateItemStatus,
-} = require(
-  "../controllers/transactionController"
-);
+  getTransactionsByBarcode,
+  getTransactionsByCustomer,
+} from '../controllers/transactionController.js'
 
-router.post(
-  "/",
-  createTransaction
-);
+const router = express.Router()
 
-router.get(
-  "/",
-  getTransactions
-);
+router.get('/', getTransactions)
+router.get('/barcode/:barcode', getTransactionsByBarcode)
+router.get('/customer/:customerName', getTransactionsByCustomer)
+router.post('/', createTransaction)
+router.put('/:transactionId', updateItemStatus)
 
-router.put(
-  "/:transactionId/:itemIndex",
-  updateItemStatus
-);
-
-module.exports = router;
+export default router

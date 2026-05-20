@@ -1,66 +1,37 @@
-import {
-createContext,
-useContext,
-useEffect,
-useState,
-} from "react";
+import { createContext, useContext, useState } from 'react'
 
-const AuthContext = createContext();
+const AuthContext = createContext(null)
 
 export function AuthProvider({ children }) {
+  const [user, setUser] = useState(() => {
+    try {
+      return JSON.parse(localStorage.getItem('user')) || null
+    } catch {
+      return null
+    }
+  })
 
-const [loggedIn, setLoggedIn] =
-useState(false);
+  const isLoggedIn = !!user
 
-useEffect(() => {
+  const login = (userData, token) => {
+    localStorage.setItem('user', JSON.stringify(userData))
+    localStorage.setItem('token', token)
+    setUser(userData)
+  }
 
-const auth =
-  localStorage.getItem(
-    "jewel-auth"
-  );
+  const logout = () => {
+    localStorage.removeItem('user')
+    localStorage.removeItem('token')
+    setUser(null)
+  }
 
-setLoggedIn(auth === "true");
-
-}, []);
-
-const login = () => {
-
-localStorage.setItem(
-  "jewel-auth",
-  "true"
-);
-
-setLoggedIn(true);
-
-};
-
-const logout = () => {
-
-localStorage.removeItem(
-  "jewel-auth"
-);
-
-setLoggedIn(false);
-
-};
-
-return (
-
-<AuthContext.Provider
-  value={{
-    loggedIn,
-    login,
-    logout,
-  }}
->
-
-  {children}
-
-</AuthContext.Provider>
-
-);
+  return (
+    <AuthContext.Provider value={{ user, isLoggedIn, login, logout }}>
+      {children}
+    </AuthContext.Provider>
+  )
 }
 
 export function useAuth() {
-return useContext(AuthContext);
+  return useContext(AuthContext)
 }

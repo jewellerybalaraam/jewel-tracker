@@ -1,129 +1,124 @@
-const Transaction = require(
-  "../models/Transaction"
-);
+import Transaction from '../models/Transaction.js'
 
-const createTransaction =
-  async (req, res) => {
+export const createTransaction = async (req, res) => {
+  try {
+    const transaction = await Transaction.create(req.body)
+    res.json(transaction)
+  } catch (error) {
+    console.log(error)
+    res.status(500).json({ message: 'Failed to Create Transaction' })
+  }
+}
 
-    try {
+export const getTransactions = async (req, res) => {
+  try {
+    const transactions = await Transaction.find()
+      .populate('clientId')
+      .sort({ createdAt: -1 })
+    res.json(transactions)
+  } catch (error) {
+    console.log(error)
+    res.status(500).json({ message: 'Failed to Fetch Transactions' })
+  }
+}
 
-      const transaction =
-        await Transaction.create(
-          req.body
-        );
+// Fix: transactionId from params, barcode from body
+export const updateItemStatus = async (req, res) => {
+  try {
+    const { transactionId } = req.params
+    const { barcode, status, billBookNo, billPageNo } = req.body
 
-      res.json(transaction);
+    const transaction = await Transaction.findById(transactionId)
 
-    } catch (error) {
-
-      console.log(error);
-
-      res.status(500).json({
-        message:
-          "Failed to Create Transaction",
-      });
+    if (!transaction) {
+      return res.status(404).json({ message: 'Transaction Not Found' })
     }
-  };
 
-const getTransactions =
-  async (req, res) => {
+    const item = transaction.items.find((i) => i.barcode === barcode)
 
-    try {
-
-      const transactions =
-        await Transaction.find()
-
-          .populate("clientId")
-
-          .sort({
-            createdAt: -1,
-          });
-
-      res.json(transactions);
-
-    } catch (error) {
-
-      console.log(error);
-
-      res.status(500).json({
-        message:
-          "Failed to Fetch Transactions",
-      });
+    if (!item) {
+      return res.status(404).json({ message: 'Item Not Found' })
     }
-  };
 
-const updateItemStatus =
-  async (req, res) => {
+    item.status = status
 
-    try {
-
-      const {
-        transactionId,
-        barcode,
-        status,
-        billBookNo,
-        billPageNo,
-      } = req.body;
-
-      const transaction =
-        await Transaction.findById(
-          transactionId
-        );
-
-      if (!transaction) {
-
-        return res.status(404).json({
-          message:
-            "Transaction Not Found",
-        });
-      }
-
-      const item =
-        transaction.items.find(
-          (i) =>
-            i.barcode === barcode
-        );
-
-      if (!item) {
-
-        return res.status(404).json({
-          message:
-            "Item Not Found",
-        });
-      }
-
-      item.status = status;
-
-      if (status === "SOLD") {
-
-        item.billBookNo =
-          billBookNo || "";
-
-        item.billPageNo =
-          billPageNo || "";
-      }
-
-      await transaction.save();
-
-      res.json({
-        success: true,
-        message:
-          "Item Status Updated",
-      });
-
-    } catch (error) {
-
-      console.log(error);
-
-      res.status(500).json({
-        message:
-          "Failed to Update Status",
-      });
+    if (status === 'SOLD') {
+      item.billBookNo = billBookNo || ''
+      item.billPageNo = billPageNo || ''
     }
-  };
 
-module.exports = {
-  createTransaction,
-  getTransactions,
-  updateItemStatus,
-};
+    await transaction.save()
+
+    res.json({ success: true, message: 'Item Status Updated' })
+
+  } catch (error) {
+    console.log(error)
+    res.status(500).json({ message: 'Failed to Update Status' })
+  }
+}
+
+// Used by BarcodeSearch page
+export const getTransactionsByBarcode = async (req, res) => {
+  try {
+    const { barcode } = req.params
+
+    const transactions = await Transaction.find({
+      'items.barcode': barcode,
+    }).populate('clientId')
+
+    const results = []
+
+    transactions.forEach((t) => {
+      t.items.forEach((item) => {
+        if (item.barcode === barcode) {
+          results.push({
+            transactionId: t._id,
+            customerName: t.customerName,
+            productName: t.productName,
+            barcode: item.barcode,
+            weight: item.weight,
+            status: item.status,
+            billBookNo: item.billBookNo,
+            billPageNo: item.billPageNo,
+            createdAt: t.createdAt,
+          })
+        }
+      })
+    })
+
+    res.json(results)
+
+  } catch (error) {
+    console.log(error)
+    res.status(500).json({ message: 'Failed to Search by Barcode' })
+  }
+}
+
+// Used by CustomerHistory page, supports optional ?from=&to= date filter
+export const getTransactionsByCustomer = async (req, res) => {
+  try {
+    const { customerName } = req.params
+    const { from, to } = req.query
+
+    const query = {
+      customerName: { $regex: customerName, $options: 'i' },
+    }
+
+    if (from && to) {
+      query.createdAt = {
+        $gte: new Date(from),
+        $lte: new Date(new Date(to).setHours(23, 59, 59, 999)),
+      }
+    }
+
+    const transactions = await Transaction.find(query)
+      .populate('clientId')
+      .sort({ createdAt: -1 })
+
+    res.json(transactions)
+
+  } catch (error) {
+    console.log(error)
+    res.status(500).json({ message: 'Failed to Fetch Customer History' })
+  }
+}

@@ -1,300 +1,105 @@
-// client/src/pages/NewTransaction.jsx
-
 import { useState } from 'react'
 import axios from 'axios'
 
 const NewTransaction = () => {
-
   const [barcode, setBarcode] = useState('')
-
   const [productName, setProductName] = useState('')
-
-  const [subProductName, setSubProductName] =
-    useState('')
-
-  const [grossWeight, setGrossWeight] =
-    useState('')
-
-  const [netWeight, setNetWeight] =
-    useState('')
-
+  const [subProductName, setSubProductName] = useState('')
+  const [grossWeight, setGrossWeight] = useState('')
+  const [netWeight, setNetWeight] = useState('')
   const [size, setSize] = useState('')
+  const [salePrice, setSalePrice] = useState('')
+  const [boardRate, setBoardRate] = useState('')
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState('')
 
-  const [salePrice, setSalePrice] =
-    useState('')
-
-  const [boardRate, setBoardRate] =
-    useState('')
-
-  const [loading, setLoading] =
-    useState(false)
-
-  const [error, setError] =
-    useState('')
-
-
-  // =====================================
-  // FETCH INVENTORY USING BARCODE
-  // =====================================
+  const clearItem = () => {
+    setProductName('')
+    setSubProductName('')
+    setGrossWeight('')
+    setNetWeight('')
+    setSize('')
+    setSalePrice('')
+    setBoardRate('')
+  }
 
   const handleBarcodeChange = async (e) => {
-
     const value = e.target.value
-
     setBarcode(value)
-
     setError('')
 
-    // CLEAR IF EMPTY
-    if (!value) {
-
-      setProductName('')
-      setSubProductName('')
-      setGrossWeight('')
-      setNetWeight('')
-      setSize('')
-      setSalePrice('')
-      setBoardRate('')
-
-      return
-    }
-
-    // WAIT MINIMUM LENGTH
+    if (!value) { clearItem(); return }
     if (value.length < 4) return
 
     try {
-
       setLoading(true)
 
       const res = await axios.get(
-        `https://jewel-tracker.onrender.com/api/inventory/barcode/${value}`
+        `${import.meta.env.VITE_API_URL}/api/inventory/barcode/${value}`
       )
 
       const item = res.data.data
-
       setProductName(item.productName)
-
-      setSubProductName(
-        item.subProductName
-      )
-
-      setGrossWeight(
-        item.grossWeight
-      )
-
-      setNetWeight(
-        item.netWeight
-      )
-
+      setSubProductName(item.subProductName)
+      setGrossWeight(item.grossWeight)
+      setNetWeight(item.netWeight)
       setSize(item.size)
-
-      setSalePrice(
-        item.salePrice
-      )
-
-      setBoardRate(
-        item.boardRate
-      )
+      setSalePrice(item.salePrice)
+      setBoardRate(item.boardRate)
 
     } catch (err) {
-
       console.log(err)
-
       setError('Item not found')
-
-      setProductName('')
-      setSubProductName('')
-      setGrossWeight('')
-      setNetWeight('')
-      setSize('')
-      setSalePrice('')
-      setBoardRate('')
-
+      clearItem()
     } finally {
-
       setLoading(false)
     }
   }
 
+  const fields = [
+    { label: 'Product Name', value: productName },
+    { label: 'Sub Product', value: subProductName },
+    { label: 'Gross Weight (g)', value: grossWeight },
+    { label: 'Net Weight (g)', value: netWeight },
+    { label: 'Size', value: size },
+    { label: 'Sale Price', value: salePrice },
+    { label: 'Board Rate', value: boardRate },
+  ]
 
   return (
+    <div className="p-6 max-w-xl">
 
-    <div
-      style={{
-        padding: '20px',
-        maxWidth: '500px'
-      }}
-    >
+      <h2 className="text-3xl font-black bg-gradient-to-r from-pink-400 via-orange-400 to-purple-500 bg-clip-text text-transparent mb-8">
+        New Transaction
+      </h2>
 
-      <h2>New Transaction</h2>
-
-
-      {/* BARCODE */}
-
-      <div style={{ marginBottom: '15px' }}>
-
-        <label>Barcode</label>
-
+      <div className="mb-5">
+        <label className="block text-gray-400 mb-2 text-sm">Barcode</label>
         <input
           type="text"
-          placeholder="Enter Barcode"
+          placeholder="Enter or scan barcode"
           value={barcode}
           onChange={handleBarcodeChange}
-          style={{
-            width: '100%',
-            padding: '10px'
-          }}
+          autoFocus
+          className="w-full p-4 rounded-2xl bg-white/10 border border-white/20 outline-none focus:border-pink-400"
         />
-
       </div>
 
+      {loading && <p className="text-pink-400 text-sm mb-4">Looking up item...</p>}
+      {error && <p className="text-red-400 text-sm mb-4">{error}</p>}
 
-      {/* LOADING */}
-
-      {loading && (
-        <p>Loading...</p>
-      )}
-
-
-      {/* ERROR */}
-
-      {error && (
-        <p style={{ color: 'red' }}>
-          {error}
-        </p>
-      )}
-
-
-      {/* PRODUCT NAME */}
-
-      <div style={{ marginBottom: '15px' }}>
-
-        <label>Product Name</label>
-
-        <input
-          type="text"
-          value={productName}
-          readOnly
-          style={{
-            width: '100%',
-            padding: '10px'
-          }}
-        />
-
-      </div>
-
-
-      {/* SUB PRODUCT */}
-
-      <div style={{ marginBottom: '15px' }}>
-
-        <label>Sub Product</label>
-
-        <input
-          type="text"
-          value={subProductName}
-          readOnly
-          style={{
-            width: '100%',
-            padding: '10px'
-          }}
-        />
-
-      </div>
-
-
-      {/* GROSS WEIGHT */}
-
-      <div style={{ marginBottom: '15px' }}>
-
-        <label>Gross Weight</label>
-
-        <input
-          type="text"
-          value={grossWeight}
-          readOnly
-          style={{
-            width: '100%',
-            padding: '10px'
-          }}
-        />
-
-      </div>
-
-
-      {/* NET WEIGHT */}
-
-      <div style={{ marginBottom: '15px' }}>
-
-        <label>Net Weight</label>
-
-        <input
-          type="text"
-          value={netWeight}
-          readOnly
-          style={{
-            width: '100%',
-            padding: '10px'
-          }}
-        />
-
-      </div>
-
-
-      {/* SIZE */}
-
-      <div style={{ marginBottom: '15px' }}>
-
-        <label>Size</label>
-
-        <input
-          type="text"
-          value={size}
-          readOnly
-          style={{
-            width: '100%',
-            padding: '10px'
-          }}
-        />
-
-      </div>
-
-
-      {/* SALE PRICE */}
-
-      <div style={{ marginBottom: '15px' }}>
-
-        <label>Sale Price</label>
-
-        <input
-          type="text"
-          value={salePrice}
-          readOnly
-          style={{
-            width: '100%',
-            padding: '10px'
-          }}
-        />
-
-      </div>
-
-
-      {/* BOARD RATE */}
-
-      <div style={{ marginBottom: '15px' }}>
-
-        <label>Board Rate</label>
-
-        <input
-          type="text"
-          value={boardRate}
-          readOnly
-          style={{
-            width: '100%',
-            padding: '10px'
-          }}
-        />
-
+      <div className="space-y-4">
+        {fields.map(({ label, value }) => (
+          <div key={label}>
+            <label className="block text-gray-400 mb-2 text-sm">{label}</label>
+            <input
+              type="text"
+              value={value}
+              readOnly
+              className="w-full p-4 rounded-2xl bg-white/5 border border-white/10 text-gray-300"
+            />
+          </div>
+        ))}
       </div>
 
     </div>
