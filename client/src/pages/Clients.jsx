@@ -1,206 +1,186 @@
-import { useEffect, useState } from "react";
-import axios from "axios";
+import { useEffect, useState } from 'react'
+import axios from 'axios'
 
-function Clients() {
+const emptyForm = {
+  name: '', mobile: '', whatsapp: '',
+  storeName: '', address: '', gstNo: '', notes: '',
+}
 
-  const [clients, setClients] =
-    useState([]);
+export default function Clients() {
 
-  const [form, setForm] =
-    useState({
-      name: "",
-      mobile: "",
-      whatsapp: "",
-      storeName: "",
-      address: "",
-      gstNo: "",
-      notes: "",
-    });
+  const [clients,    setClients]    = useState([])
+  const [form,       setForm]       = useState(emptyForm)
+  const [editId,     setEditId]     = useState(null)
+  const [editForm,   setEditForm]   = useState(null)
+  const [saving,     setSaving]     = useState(false)
 
-  useEffect(() => {
-    fetchClients();
-  }, []);
+  useEffect(() => { fetchClients() }, [])
 
   const fetchClients = async () => {
-
     try {
+      const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/clients`)
+      setClients(res.data)
+    } catch (err) { console.log(err) }
+  }
 
-      const res = await axios.get(
-        `${import.meta.env.VITE_API_URL}/api/clients`
-      );
-
-      setClients(res.data);
-
-    } catch (error) {
-
-      console.log(error);
-    }
-  };
-
-  const handleSubmit = async () => {
-
+  const handleAdd = async () => {
+    if (!form.name.trim()) return
     try {
+      setSaving(true)
+      await axios.post(`${import.meta.env.VITE_API_URL}/api/clients`, form)
+      setForm(emptyForm)
+      fetchClients()
+    } catch (err) { console.log(err) }
+    finally { setSaving(false) }
+  }
 
-      await axios.post(
-        `${import.meta.env.VITE_API_URL}/api/clients`,
-        form
-      );
+  const startEdit = (client) => {
+    setEditId(client._id)
+    setEditForm({
+      name:      client.name      || '',
+      mobile:    client.mobile    || '',
+      whatsapp:  client.whatsapp  || '',
+      storeName: client.storeName || '',
+      address:   client.address   || '',
+      gstNo:     client.gstNo     || '',
+      notes:     client.notes     || '',
+    })
+  }
 
-      setForm({
-        name: "",
-        mobile: "",
-        whatsapp: "",
-        storeName: "",
-        address: "",
-        gstNo: "",
-        notes: "",
-      });
+  const handleSaveEdit = async () => {
+    if (!editForm.name.trim()) return
+    try {
+      setSaving(true)
+      await axios.patch(
+        `${import.meta.env.VITE_API_URL}/api/clients/${editId}`,
+        editForm
+      )
+      setEditId(null)
+      setEditForm(null)
+      fetchClients()
+    } catch (err) { console.log(err) }
+    finally { setSaving(false) }
+  }
 
-      fetchClients();
+  const inputCls = 'w-full p-4 rounded-2xl bg-black/30 border border-white/10 outline-none focus:border-pink-400 text-white placeholder-gray-500'
 
-    } catch (error) {
-
-      console.log(error);
-    }
-  };
+  const fields = [
+    { key: 'name',      placeholder: 'Client Name *' },
+    { key: 'mobile',    placeholder: 'Mobile Number' },
+    { key: 'whatsapp',  placeholder: 'WhatsApp Number' },
+    { key: 'storeName', placeholder: 'Store Name' },
+    { key: 'address',   placeholder: 'Address' },
+    { key: 'gstNo',     placeholder: 'GST Number' },
+  ]
 
   return (
+    <div className="p-6 space-y-8 max-w-3xl">
 
-    <div className="p-6">
+      <h1 className="text-3xl font-black bg-gradient-to-r from-pink-400 via-orange-400 to-purple-500 bg-clip-text text-transparent">
+        Clients
+      </h1>
 
-      <div className="bg-white/5 p-6 rounded-3xl border border-white/10 mb-8">
-
-        <h1 className="text-3xl font-bold text-pink-400 mb-6">
-          Clients
-        </h1>
+      {/* ── ADD FORM ── */}
+      <div className="bg-white/5 border border-white/10 rounded-3xl p-6 space-y-4">
+        <p className="text-gray-400 text-sm">Add New Client (only name is required)</p>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-
-          <input
-            placeholder="Client Name"
-            value={form.name}
-            onChange={(e) =>
-              setForm({
-                ...form,
-                name: e.target.value,
-              })
-            }
-            className="p-4 rounded-2xl bg-black/20"
-          />
-
-          <input
-            placeholder="Mobile Number"
-            value={form.mobile}
-            onChange={(e) =>
-              setForm({
-                ...form,
-                mobile: e.target.value,
-              })
-            }
-            className="p-4 rounded-2xl bg-black/20"
-          />
-
-          <input
-            placeholder="WhatsApp Number"
-            value={form.whatsapp}
-            onChange={(e) =>
-              setForm({
-                ...form,
-                whatsapp: e.target.value,
-              })
-            }
-            className="p-4 rounded-2xl bg-black/20"
-          />
-
-          <input
-            placeholder="Store Name"
-            value={form.storeName}
-            onChange={(e) =>
-              setForm({
-                ...form,
-                storeName: e.target.value,
-              })
-            }
-            className="p-4 rounded-2xl bg-black/20"
-          />
-
-          <input
-            placeholder="Address"
-            value={form.address}
-            onChange={(e) =>
-              setForm({
-                ...form,
-                address: e.target.value,
-              })
-            }
-            className="p-4 rounded-2xl bg-black/20"
-          />
-
-          <input
-            placeholder="GST Number"
-            value={form.gstNo}
-            onChange={(e) =>
-              setForm({
-                ...form,
-                gstNo: e.target.value,
-              })
-            }
-            className="p-4 rounded-2xl bg-black/20"
-          />
-
+          {fields.map(({ key, placeholder }) => (
+            <input
+              key={key}
+              className={inputCls}
+              placeholder={placeholder}
+              value={form[key]}
+              onChange={e => setForm({ ...form, [key]: e.target.value })}
+            />
+          ))}
           <textarea
+            className={`${inputCls} md:col-span-2`}
             placeholder="Notes"
+            rows={3}
             value={form.notes}
-            onChange={(e) =>
-              setForm({
-                ...form,
-                notes: e.target.value,
-              })
-            }
-            className="p-4 rounded-2xl bg-black/20 md:col-span-2"
-            rows={4}
+            onChange={e => setForm({ ...form, notes: e.target.value })}
           />
-
         </div>
 
         <button
-          onClick={handleSubmit}
-          className="mt-6 bg-gradient-to-r from-pink-500 to-purple-500 px-6 py-3 rounded-2xl font-bold"
+          onClick={handleAdd}
+          disabled={saving || !form.name.trim()}
+          className="bg-gradient-to-r from-pink-500 to-purple-500 px-8 py-3 rounded-2xl font-bold disabled:opacity-50"
         >
           Add Client
         </button>
-
       </div>
 
+      {/* ── CLIENT LIST ── */}
       <div className="space-y-4">
-
-        {clients.map((client) => (
-
+        {clients.map(client => (
           <div
             key={client._id}
-            className="bg-white/5 p-5 rounded-3xl border border-white/10"
+            className="bg-white/5 border border-white/10 rounded-3xl p-5"
           >
+            {editId === client._id ? (
 
-            <h2 className="text-2xl font-bold text-pink-300">
-              {client.name}
-            </h2>
+              /* ── EDIT MODE ── */
+              <div className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {fields.map(({ key, placeholder }) => (
+                    <input
+                      key={key}
+                      className={inputCls}
+                      placeholder={placeholder}
+                      value={editForm[key]}
+                      onChange={e => setEditForm({ ...editForm, [key]: e.target.value })}
+                    />
+                  ))}
+                  <textarea
+                    className={`${inputCls} md:col-span-2`}
+                    placeholder="Notes"
+                    rows={3}
+                    value={editForm.notes}
+                    onChange={e => setEditForm({ ...editForm, notes: e.target.value })}
+                  />
+                </div>
+                <div className="flex gap-3">
+                  <button
+                    onClick={handleSaveEdit}
+                    disabled={saving}
+                    className="bg-gradient-to-r from-pink-500 to-purple-500 px-6 py-3 rounded-2xl font-bold disabled:opacity-50"
+                  >
+                    Save
+                  </button>
+                  <button
+                    onClick={() => { setEditId(null); setEditForm(null) }}
+                    className="bg-white/10 px-6 py-3 rounded-2xl font-bold text-gray-400"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
 
-            <p className="text-gray-300">
-              {client.storeName}
-            </p>
+            ) : (
 
-            <p className="text-gray-400">
-              {client.mobile}
-            </p>
+              /* ── VIEW MODE ── */
+              <div className="flex justify-between items-start gap-4">
+                <div>
+                  <h2 className="text-xl font-bold text-pink-300">{client.name}</h2>
+                  {client.storeName && <p className="text-gray-300">{client.storeName}</p>}
+                  {client.mobile    && <p className="text-gray-400 text-sm">{client.mobile}</p>}
+                  {client.address   && <p className="text-gray-500 text-sm">{client.address}</p>}
+                </div>
+                <button
+                  onClick={() => startEdit(client)}
+                  className="text-pink-400 hover:text-pink-300 text-sm font-bold bg-white/5 px-4 py-2 rounded-xl"
+                >
+                  Edit
+                </button>
+              </div>
 
+            )}
           </div>
-
         ))}
-
       </div>
 
     </div>
-  );
+  )
 }
-
-export default Clients;

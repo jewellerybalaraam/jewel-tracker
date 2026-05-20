@@ -1,8 +1,8 @@
 import mongoose from 'mongoose'
 
 const itemSchema = new mongoose.Schema({
-  barcode: String,
-  weight: Number,
+  barcode:    String,
+  weight:     Number,
   status: {
     type: String,
     enum: ['PENDING', 'SOLD', 'RETURNED'],
@@ -18,13 +18,14 @@ const transactionSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Client',
     },
-    customerName: String,
-    productName: String,
-    mode: String,
-    items: [itemSchema],
+    customerName:    String,
+    productName:     String,
+    mode:            String,
+    transactionDate: { type: Date, default: Date.now },   // editable date
+    items:           [itemSchema],
     pcsTracking: {
-      totalPieces: Number,
-      totalWeight: Number,
+      totalPieces:    Number,
+      totalWeight:    Number,
       returnedPieces: { type: Number, default: 0 },
       returnedWeight: { type: Number, default: 0 },
     },

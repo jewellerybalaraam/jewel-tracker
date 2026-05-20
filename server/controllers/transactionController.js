@@ -14,7 +14,7 @@ export const getTransactions = async (req, res) => {
   try {
     const transactions = await Transaction.find()
       .populate('clientId')
-      .sort({ createdAt: -1 })
+      .sort({ transactionDate: -1 })
     res.json(transactions)
   } catch (error) {
     console.log(error)
@@ -22,7 +22,35 @@ export const getTransactions = async (req, res) => {
   }
 }
 
-// Fix: transactionId from params, barcode from body
+// Update transaction date (and optionally customerName, productName)
+export const updateTransaction = async (req, res) => {
+  try {
+    const { transactionId } = req.params
+    const { transactionDate, customerName, productName } = req.body
+
+    const update = {}
+    if (transactionDate) update.transactionDate = new Date(transactionDate)
+    if (customerName)    update.customerName    = customerName
+    if (productName)     update.productName     = productName
+
+    const transaction = await Transaction.findByIdAndUpdate(
+      transactionId,
+      { $set: update },
+      { new: true }
+    )
+
+    if (!transaction) {
+      return res.status(404).json({ message: 'Transaction Not Found' })
+    }
+
+    res.json({ success: true, transaction })
+
+  } catch (error) {
+    console.log(error)
+    res.status(500).json({ message: 'Failed to Update Transaction' })
+  }
+}
+
 export const updateItemStatus = async (req, res) => {
   try {
     const { transactionId } = req.params
@@ -57,7 +85,6 @@ export const updateItemStatus = async (req, res) => {
   }
 }
 
-// Used by BarcodeSearch page
 export const getTransactionsByBarcode = async (req, res) => {
   try {
     const { barcode } = req.params
@@ -73,14 +100,14 @@ export const getTransactionsByBarcode = async (req, res) => {
         if (item.barcode === barcode) {
           results.push({
             transactionId: t._id,
-            customerName: t.customerName,
-            productName: t.productName,
-            barcode: item.barcode,
-            weight: item.weight,
-            status: item.status,
-            billBookNo: item.billBookNo,
-            billPageNo: item.billPageNo,
-            createdAt: t.createdAt,
+            customerName:  t.customerName,
+            productName:   t.productName,
+            barcode:       item.barcode,
+            weight:        item.weight,
+            status:        item.status,
+            billBookNo:    item.billBookNo,
+            billPageNo:    item.billPageNo,
+            createdAt:     t.transactionDate || t.createdAt,
           })
         }
       })
@@ -94,7 +121,6 @@ export const getTransactionsByBarcode = async (req, res) => {
   }
 }
 
-// Used by CustomerHistory page, supports optional ?from=&to= date filter
 export const getTransactionsByCustomer = async (req, res) => {
   try {
     const { customerName } = req.params
@@ -105,7 +131,7 @@ export const getTransactionsByCustomer = async (req, res) => {
     }
 
     if (from && to) {
-      query.createdAt = {
+      query.transactionDate = {
         $gte: new Date(from),
         $lte: new Date(new Date(to).setHours(23, 59, 59, 999)),
       }
@@ -113,7 +139,7 @@ export const getTransactionsByCustomer = async (req, res) => {
 
     const transactions = await Transaction.find(query)
       .populate('clientId')
-      .sort({ createdAt: -1 })
+      .sort({ transactionDate: -1 })
 
     res.json(transactions)
 

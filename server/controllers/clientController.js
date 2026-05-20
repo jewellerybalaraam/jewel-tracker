@@ -19,3 +19,21 @@ export const getClients = async (req, res) => {
     res.status(500).json({ message: 'Failed to Fetch Clients' })
   }
 }
+
+export const updateClient = async (req, res) => {
+  try {
+    const { clientId } = req.params
+    const client = await Client.findByIdAndUpdate(
+      clientId,
+      { $set: req.body },
+      { new: true }
+    )
+    if (!client) {
+      return res.status(404).json({ message: 'Client Not Found' })
+    }
+    res.json(client)
+  } catch (error) {
+    console.log(error)
+    res.status(500).json({ message: 'Failed to Update Client' })
+  }
+}
