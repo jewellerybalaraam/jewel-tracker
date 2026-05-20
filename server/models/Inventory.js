@@ -15,7 +15,7 @@ const inventorySchema = new mongoose.Schema(
     },
 
     tagNo: {
-      type: Number,
+      type: String,      // changed from Number — values like 'KILI1', 'LDK6'
       required: true
     },
 
@@ -25,44 +25,14 @@ const inventorySchema = new mongoose.Schema(
       required: true
     },
 
-    supplier: {
-      type: String
-    },
-
-    grossWeight: {
-      type: Number,
-      required: true
-    },
-
-    netWeight: {
-      type: Number,
-      required: true
-    },
-
-    boardRate: {
-      type: Number,
-      default: 0
-    },
-
-    mcPerGram: {
-      type: Number,
-      default: 0
-    },
-
-    mcAmount: {
-      type: Number,
-      default: 0
-    },
-
-    salePrice: {
-      type: Number,
-      default: 0
-    },
-
-    size: {
-      type: String,
-      default: ''
-    },
+    supplier:    { type: String,  default: '' },
+    grossWeight: { type: Number,  required: true },
+    netWeight:   { type: Number,  required: true },
+    boardRate:   { type: Number,  default: 0 },
+    mcPerGram:   { type: Number,  default: 0 },
+    mcAmount:    { type: Number,  default: 0 },
+    salePrice:   { type: Number,  default: 0 },
+    size:        { type: String,  default: '' },
 
     status: {
       type: String,
@@ -70,9 +40,7 @@ const inventorySchema = new mongoose.Schema(
       default: 'AVAILABLE'
     }
   },
-  {
-    timestamps: true
-  }
+  { timestamps: true }
 )
 
 export default mongoose.model('Inventory', inventorySchema)
