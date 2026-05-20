@@ -11,7 +11,6 @@ import CustomerHistory from './pages/CustomerHistory'
 import UploadInventory from './pages/UploadInventory'
 import Clients from './pages/Clients'
 import PendingClients from './pages/PendingClients'
-import UserManagement from './pages/UserManagement'
 
 function ProtectedRoute({ children }) {
   const { isLoggedIn } = useAuth()
@@ -41,7 +40,6 @@ function App() {
           <Route path="upload-inventory" element={<UploadInventory />} />
           <Route path="clients" element={<Clients />} />
           <Route path="pending-clients" element={<PendingClients />} />
-          <Route path="users" element={<UserManagement />} />
         </Route>
 
         <Route path="*" element={<Navigate to="/" replace />} />
