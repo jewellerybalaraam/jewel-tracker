@@ -109,7 +109,7 @@ export const uploadInventory = async (req, res) => {
 
       insertedCount++
     }
-    fs.unlinkSync(req.file.path)
+    try { fs.unlinkSync(req.file.path) } catch (_) {}
 
     res.status(200).json({
       success: true,
