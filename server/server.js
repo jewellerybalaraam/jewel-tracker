@@ -1,24 +1,21 @@
-const express = require("express");
-const mongoose = require("mongoose");
-const cors = require("cors");
-require("dotenv").config();
+import express from 'express'
+import mongoose from 'mongoose'
+import cors from 'cors'
+import dotenv from 'dotenv'
 
-const transactionRoutes =
-  require("./routes/transactionRoutes");
+import inventoryRoutes from './routes/inventoryRoutes.js'
 
-const inventoryRoutes =
-  require("./routes/inventoryRoutes");
+dotenv.config()
 
-const clientRoutes =
-  require("./routes/clientRoutes");
+const app = express()
 
-const authRoutes =
-  require("./routes/authRoutes");  
 
-const app = express();
+// ===============================
+// MIDDLEWARE
+// ===============================
 
-app.use(cors());
-app.use(express.json());
+app.use(cors())
+
 app.use(express.json({
   limit: '50mb'
 }))
@@ -28,48 +25,39 @@ app.use(express.urlencoded({
   limit: '50mb'
 }))
 
-app.use(
-  "/api/transactions",
-  transactionRoutes
-);
+
+// ===============================
+// ROUTES
+// ===============================
 
 app.use(
-  "/api/inventory",
+  '/api/inventory',
   inventoryRoutes
-);
+)
 
-app.use(
-  "/api/auth",
-  authRoutes
-);
 
-app.use(
-  "/api/clients",
-  clientRoutes
-);
+// ===============================
+// MONGODB
+// ===============================
 
-app.get("/", (req, res) => {
-  res.send("Jewel ERP API Running");
-});
+mongoose.connect(process.env.MONGO_URI)
+.then(() => {
+  console.log('MongoDB Connected')
+})
+.catch((err) => {
+  console.log(err)
+})
+
+
+// ===============================
+// SERVER
+// ===============================
 
 const PORT =
-  process.env.PORT || 5000;
+  process.env.PORT || 5000
 
-mongoose
-  .connect(process.env.MONGO_URI)
-  .then(() => {
-    console.log("MongoDB Connected");
-
-    app.listen(
-      PORT,
-      "0.0.0.0",
-      () => {
-        console.log(
-          `Server running on port ${PORT}`
-        );
-      }
-    );
-  })
-  .catch((err) => {
-    console.error(err);
-  });
+app.listen(PORT, () => {
+  console.log(
+    `Server running on port ${PORT}`
+  )
+})
