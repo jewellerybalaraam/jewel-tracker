@@ -67,7 +67,7 @@ const NewTransaction = () => {
       setLoading(true)
 
       const res = await axios.get(
-        `https://jewel-tracker.onrender.com//api/inventory/barcode/${value}`
+        `https://jewel-tracker.onrender.com/api/inventory/barcode/${value}`
       )
 
       const item = res.data.data

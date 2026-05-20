@@ -21,7 +21,7 @@ const UploadInventory = () => {
       formData.append('file', file)
 
       const res = await axios.post(
-        'https://jewel-tracker.onrender.com//api/inventory/upload',
+        'https://jewel-tracker.onrender.com/api/inventory/upload',
         formData,
         {
           headers: {
