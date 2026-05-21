@@ -4,6 +4,9 @@ import { Scanner } from '@yudiel/react-qr-scanner'
 
 const API = import.meta.env.VITE_API_URL
 
+// QR codes often encode "104-CHPS16" but inventory stores "104CHPS16"
+const normalizeBarcode = (code) => code.replace(/-/g, '')
+
 const Field = ({ label, value, accent }) => {
   if (!value && value !== 0) return null
   return (
@@ -32,7 +35,7 @@ export default function InventorySearch() {
   const [showScanner, setShowScanner] = useState(false)
 
   const search = async (code) => {
-    const q = (code || barcode).trim()
+    const q = normalizeBarcode((code || barcode).trim())
     if (!q) return
 
     setLoading(true)

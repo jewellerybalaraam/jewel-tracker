@@ -6,6 +6,9 @@ const API = import.meta.env.VITE_API_URL
 const todayStr = () => new Date().toISOString().split('T')[0]
 const emptyItem = () => ({ barcode: '', wt: '', size: '', productName: '', subProductName: '', purity: '', fetchStatus: '' })
 
+// QR codes often encode "104-CHPS16" but inventory stores "104CHPS16"
+const normalizeBarcode = (code) => code.replace(/-/g, '')
+
 
 // ── barcode item status editor ─────────────────────────────
 function BarcodeStatusEditor({ status, onSave }) {
@@ -298,10 +301,11 @@ function InventoryChip({ item }) {
 function BarcodeRow({ item, idx, onChange, onRemove, showRemove }) {
 
   const fetchInventory = async (barcode) => {
-    if (!barcode.trim()) return
+    const normalized = normalizeBarcode(barcode.trim())
+    if (!normalized) return
     onChange(idx, 'fetchStatus', 'loading')
     try {
-      const res = await axios.get(`${API}/api/inventory/barcode/${barcode.trim()}`)
+      const res = await axios.get(`${API}/api/inventory/barcode/${normalized}`)
       const inv = res.data.data
       onChange(idx, '__bulk', {
         wt:             String(inv.netWt  || ''),
