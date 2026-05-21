@@ -1,7 +1,29 @@
 import XLSX from 'xlsx'
-import fs from 'fs'
+import fs   from 'fs'
 import Inventory from '../models/Inventory.js'
-import Product from '../models/Product.js'
+
+
+// ── helpers ────────────────────────────────────────────────────────────────
+
+// SIZE cells are sometimes stored as Excel date serials by accident.
+// Return an empty string for those; otherwise stringify the value.
+const parseSize = (raw) => {
+  if (raw === undefined || raw === null || raw === '') return ''
+  if (raw instanceof Date) return ''
+  const s = String(raw).trim()
+  // xlsx serial dates land here as numbers when cellDates:false — skip them
+  // if the value looks like a large integer (Excel date serial > 40000)
+  if (/^\d{5,}$/.test(s)) return ''
+  return s
+}
+
+// RECDATE comes in as a JS Date (cellDates: true).  Normalise to midnight UTC.
+const parseDate = (raw) => {
+  if (!raw) return null
+  if (raw instanceof Date && !isNaN(raw)) return raw
+  const d = new Date(raw)
+  return isNaN(d) ? null : d
+}
 
 
 // =====================================
@@ -19,75 +41,44 @@ export const uploadInventory = async (req, res) => {
       })
     }
 
-    const workbook = XLSX.readFile(req.file.path)
+    const workbook = XLSX.readFile(req.file.path, { cellDates: true })
 
     const sheetName = workbook.SheetNames[0]
 
-    // range: 2 → skip rows 1 & 2 (empty), use row 3 as headers
+    // range: 2 → row index 2 is the header row
+    // (rows 0–1 are blank; row 2 = RECDATE TIME ITEMTAG PROID …)
     const rows = XLSX.utils.sheet_to_json(
       workbook.Sheets[sheetName],
       { range: 2, defval: '' }
     )
 
     let insertedCount = 0
+    let skippedCount  = 0
 
     for (const row of rows) {
 
-      const lotNo    = row['Lot No']
-      const tagNo    = row['Tag No']
-      const proCode  = row['Product Code']
-      const prodName = row['Product Name']
-      const subProd  = row['Sub Product']
-      const desName  = row['Des Name']
-      const grsWt    = row['Grs Wt']
-      const netWt    = row['Net Wt']
-      const boardRate = row['Board Rate']
-      const mcGr     = row['Mc Gr']
-      const mcAmnt   = row['Mc Amnt']
-      const selPrice = row['Sel Price']
+      const barcode = String(row['ITEMTAG'] || '').trim()
 
-      // Skip rows without a tag number or product code (category header rows)
-      if (!tagNo || !proCode) continue
-
-      // Derive prefix from Tag No — strip trailing digits
-      // e.g. 'KILI1' → 'KILI', 'STUD12' → 'STUD', 'LDK6' → 'LDK'
-      const prefix = String(tagNo).replace(/\d+$/, '') || 'PRD'
-
-      // Barcode = LotNo + TagNo  e.g. '0KILI1', '10STUD3'
-      const barcode = `${lotNo}${tagNo}`
+      // Skip header-echo rows or empty rows
+      if (!barcode || barcode === 'ITEMTAG') { skippedCount++; continue }
 
       // Skip duplicates
-      const existing = await Inventory.findOne({ barcode })
-      if (existing) continue
+      const exists = await Inventory.findOne({ barcode })
+      if (exists) { skippedCount++; continue }
 
-      // Find or create Product
-      let product = await Product.findOne({ productId: proCode })
-
-      if (!product) {
-        product = await Product.create({
-          productId:      proCode,
-          prefix,
-          productName:    prodName  || '',
-          subProductName: subProd   || '',
-          purity:         92.5
-        })
-      }
-
-      // Create Inventory item
       await Inventory.create({
+        recordDate:     parseDate(row['RECDATE']),
+        recordTime:     String(row['TIME']          || '').trim(),
         barcode,
-        lotNo:      Number(lotNo)    || 0,
-        tagNo:      String(tagNo)    || '',
-        productId:  product._id,
-        supplier:   desName          || '',
-        grossWeight: Number(grsWt)   || 0,
-        netWeight:   Number(netWt)   || 0,
-        boardRate:   Number(boardRate) || 0,
-        mcPerGram:   Number(mcGr)    || 0,
-        mcAmount:    Number(mcAmnt)  || 0,
-        salePrice:   Number(selPrice) || 0,
-        size:        '',
-        status:      'AVAILABLE'
+        productId:      Number(row['PROID'])         || 0,
+        productName:    String(row['PRODUCTNAME']    || '').trim(),
+        subProductName: String(row['SUBPRODUCTNAME'] || '').trim(),
+        netWt:          parseFloat(row['NETWT'])     || 0,
+        size:           parseSize(row['SIZE']),
+        makingCharge:   parseFloat(row['MC'])        || 0,
+        pureRate:       parseFloat(row['PURE RATE']) || 0,
+        purity:         String(row['TAG TYPE']       || '').trim(),
+        status:         'AVAILABLE'
       })
 
       insertedCount++
@@ -98,15 +89,13 @@ export const uploadInventory = async (req, res) => {
     res.status(200).json({
       success: true,
       insertedCount,
+      skippedCount,
       message: 'Inventory uploaded successfully'
     })
 
   } catch (error) {
     console.log(error)
-    res.status(500).json({
-      success: false,
-      message: error.message
-    })
+    res.status(500).json({ success: false, message: error.message })
   }
 }
 
@@ -121,16 +110,10 @@ export const getInventoryByBarcode = async (req, res) => {
 
     const { barcode } = req.params
 
-    const item = await Inventory.findOne({
-      barcode,
-      status: 'AVAILABLE'
-    }).populate('productId')
+    const item = await Inventory.findOne({ barcode, status: 'AVAILABLE' })
 
     if (!item) {
-      return res.status(404).json({
-        success: false,
-        message: 'Item not found'
-      })
+      return res.status(404).json({ success: false, message: 'Item not found' })
     }
 
     res.status(200).json({
@@ -138,21 +121,22 @@ export const getInventoryByBarcode = async (req, res) => {
       data: {
         _id:            item._id,
         barcode:        item.barcode,
-        productName:    item.productId.productName,
-        subProductName: item.productId.subProductName,
-        grossWeight:    item.grossWeight,
-        netWeight:      item.netWeight,
+        recordDate:     item.recordDate,
+        recordTime:     item.recordTime,
+        productId:      item.productId,
+        productName:    item.productName,
+        subProductName: item.subProductName,
+        netWt:          item.netWt,
         size:           item.size,
-        salePrice:      item.salePrice,
-        boardRate:      item.boardRate
+        makingCharge:   item.makingCharge,
+        pureRate:       item.pureRate,
+        purity:         item.purity,
+        status:         item.status
       }
     })
 
   } catch (error) {
     console.log(error)
-    res.status(500).json({
-      success: false,
-      message: error.message
-    })
+    res.status(500).json({ success: false, message: error.message })
   }
 }

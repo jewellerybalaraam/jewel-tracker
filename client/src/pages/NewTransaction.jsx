@@ -4,7 +4,7 @@ import axios from 'axios'
 const API = import.meta.env.VITE_API_URL
 
 const todayStr = () => new Date().toISOString().split('T')[0]
-const emptyItem = () => ({ barcode: '', wt: '', size: '' })
+const emptyItem = () => ({ barcode: '', wt: '', size: '', productName: '', subProductName: '', purity: '', fetchStatus: '' })
 
 
 // ── barcode item status editor ─────────────────────────────
@@ -72,7 +72,6 @@ function WtStatusEditor({ wtMode, onSave }) {
   const [bookNo,      setBookNo]      = useState('')
   const [pageNo,      setPageNo]      = useState('')
 
-  // auto-calc display
   const totalPcs = wtMode.totalPcs || 0
   const totalWt  = wtMode.totalWt  || 0
   const calcSoldPcs = totalPcs - (parseFloat(retPcs) || 0)
@@ -107,7 +106,6 @@ function WtStatusEditor({ wtMode, onSave }) {
 
   return (
     <div className="flex flex-col gap-3 items-start">
-
       <div className="flex gap-2">
         {['PENDING', 'RETURNED', 'SOLD'].map(s => (
           <button key={s} className={btnCls(s)} onClick={() => handleChange(s)}>{s}</button>
@@ -116,33 +114,17 @@ function WtStatusEditor({ wtMode, onSave }) {
 
       {showSoldForm && (
         <div className="bg-black/30 rounded-2xl p-4 space-y-3 w-full">
-
-          {/* returned inputs */}
           <p className="text-xs text-gray-400 font-semibold">Enter returned quantity:</p>
           <div className="flex gap-3 flex-wrap">
             <div>
               <p className="text-xs text-gray-500 mb-1">Returned Pcs</p>
-              <input
-                className={miniInp}
-                type="number"
-                placeholder="0"
-                value={retPcs}
-                onChange={e => setRetPcs(e.target.value)}
-              />
+              <input className={miniInp} type="number" placeholder="0" value={retPcs} onChange={e => setRetPcs(e.target.value)} />
             </div>
             <div>
               <p className="text-xs text-gray-500 mb-1">Returned Wt (g)</p>
-              <input
-                className={miniInp}
-                type="number"
-                placeholder="0"
-                value={retWt}
-                onChange={e => setRetWt(e.target.value)}
-              />
+              <input className={miniInp} type="number" placeholder="0" value={retWt} onChange={e => setRetWt(e.target.value)} />
             </div>
           </div>
-
-          {/* auto-calculated sold */}
           <div className="flex gap-6 text-sm bg-white/5 rounded-xl px-4 py-3">
             <div>
               <p className="text-gray-500 text-xs">Sold Pcs</p>
@@ -153,29 +135,16 @@ function WtStatusEditor({ wtMode, onSave }) {
               <p className="font-bold text-green-400">{calcSoldWt}</p>
             </div>
           </div>
-
-          {/* bill inputs */}
           <div className="flex gap-3 flex-wrap">
             <div>
               <p className="text-xs text-gray-500 mb-1">Bill Book No</p>
-              <input
-                className={miniInp}
-                placeholder="Book No"
-                value={bookNo}
-                onChange={e => setBookNo(e.target.value)}
-              />
+              <input className={miniInp} placeholder="Book No" value={bookNo} onChange={e => setBookNo(e.target.value)} />
             </div>
             <div>
               <p className="text-xs text-gray-500 mb-1">Page No</p>
-              <input
-                className={miniInp}
-                placeholder="Page No"
-                value={pageNo}
-                onChange={e => setPageNo(e.target.value)}
-              />
+              <input className={miniInp} placeholder="Page No" value={pageNo} onChange={e => setPageNo(e.target.value)} />
             </div>
           </div>
-
           <button
             onClick={confirmSold}
             disabled={calcSoldPcs < 0 || calcSoldWt < 0}
@@ -186,7 +155,6 @@ function WtStatusEditor({ wtMode, onSave }) {
         </div>
       )}
 
-      {/* show saved breakdown after confirming */}
       {val === 'SOLD' && !showSoldForm && wtMode.soldPcs > 0 && (
         <div className="flex gap-6 text-xs text-gray-400 bg-white/5 rounded-xl px-4 py-2">
           <span>Returned: {wtMode.returnedPcs} pcs / {wtMode.returnedWt} g</span>
@@ -202,23 +170,23 @@ function WtStatusEditor({ wtMode, onSave }) {
 function TodayList({ refresh }) {
   const [list, setList] = useState([])
 
-  const fetch = async () => {
+  const fetchList = async () => {
     try {
       const res = await axios.get(`${API}/api/eerettu/today`)
       setList(res.data)
     } catch (e) { console.log(e) }
   }
 
-  useEffect(() => { fetch() }, [refresh])
+  useEffect(() => { fetchList() }, [refresh])
 
   const updateItem = async (id, barcode, payload) => {
     await axios.patch(`${API}/api/eerettu/${id}/item`, { barcode, ...payload })
-    fetch()
+    fetchList()
   }
 
   const updateWt = async (id, payload) => {
     await axios.patch(`${API}/api/eerettu/${id}/wt`, payload)
-    fetch()
+    fetchList()
   }
 
   const grouped = list.reduce((acc, e) => {
@@ -235,13 +203,10 @@ function TodayList({ refresh }) {
     <div className="space-y-6">
       {Object.entries(grouped).map(([client, entries]) => (
         <div key={client} className="bg-white/5 border border-white/10 rounded-3xl p-5">
-
           <h3 className="text-xl font-black text-pink-300 mb-4">{client}</h3>
-
           <div className="space-y-4">
             {entries.map(e => (
               <div key={e._id} className="bg-black/20 rounded-2xl p-4">
-
                 <div className="flex items-center justify-between mb-3">
                   <span className="font-bold text-orange-300 text-base">{e.roughProductName}</span>
                   <span className="text-xs text-gray-500 bg-white/5 px-2 py-1 rounded-lg">
@@ -249,7 +214,6 @@ function TodayList({ refresh }) {
                   </span>
                 </div>
 
-                {/* BARCODE MODE */}
                 {e.mode === 'barcode' && (
                   <div className="space-y-3">
                     {e.items.map((item, idx) => (
@@ -273,7 +237,6 @@ function TodayList({ refresh }) {
                   </div>
                 )}
 
-                {/* WT MODE */}
                 {e.mode === 'wt' && (
                   <div className="flex flex-col gap-3">
                     <div className="flex gap-6 text-sm text-gray-300">
@@ -291,12 +254,140 @@ function TodayList({ refresh }) {
                     )}
                   </div>
                 )}
-
               </div>
             ))}
           </div>
         </div>
       ))}
+    </div>
+  )
+}
+
+
+// ── inventory info chip shown after barcode lookup ──────────
+function InventoryChip({ item }) {
+  if (!item) return null
+  return (
+    <div className="mt-1.5 flex flex-wrap gap-2 items-center">
+      <span className="text-xs bg-green-500/20 text-green-300 border border-green-500/30 px-2.5 py-1 rounded-lg font-semibold">
+        ✓ {item.productName}
+        {item.subProductName && item.subProductName !== item.productName
+          ? ` · ${item.subProductName}` : ''}
+      </span>
+      {item.netWt > 0 && (
+        <span className="text-xs bg-white/10 text-gray-300 px-2.5 py-1 rounded-lg">
+          {item.netWt} g
+        </span>
+      )}
+      {item.purity && (
+        <span className="text-xs bg-orange-500/20 text-orange-300 border border-orange-500/30 px-2.5 py-1 rounded-lg">
+          {item.purity}
+        </span>
+      )}
+      {item.size && (
+        <span className="text-xs bg-white/10 text-gray-300 px-2.5 py-1 rounded-lg">
+          Size {item.size}
+        </span>
+      )}
+    </div>
+  )
+}
+
+
+// ── single barcode row with auto-fill ──────────────────────
+function BarcodeRow({ item, idx, onChange, onRemove, showRemove }) {
+
+  const fetchInventory = async (barcode) => {
+    if (!barcode.trim()) return
+    onChange(idx, 'fetchStatus', 'loading')
+    try {
+      const res = await axios.get(`${API}/api/inventory/barcode/${barcode.trim()}`)
+      const inv = res.data.data
+      onChange(idx, '__bulk', {
+        wt:             String(inv.netWt  || ''),
+        size:           inv.size          || '',
+        productName:    inv.productName   || '',
+        subProductName: inv.subProductName|| '',
+        purity:         inv.purity        || '',
+        fetchStatus:    'found',
+        _inv:           inv,
+      })
+    } catch {
+      onChange(idx, '__bulk', {
+        wt: '', size: '', productName: '', subProductName: '', purity: '',
+        fetchStatus: 'not_found', _inv: null,
+      })
+    }
+  }
+
+  const handleKeyDown = (e) => {
+    if (e.key === 'Enter') fetchInventory(item.barcode)
+  }
+
+  const borderColor =
+    item.fetchStatus === 'found'     ? 'border-green-500/60' :
+    item.fetchStatus === 'not_found' ? 'border-red-500/60'   :
+    item.fetchStatus === 'loading'   ? 'border-yellow-500/60':
+    'border-white/10'
+
+  const baseInp = 'p-4 rounded-2xl bg-white/10 border outline-none focus:border-pink-400 text-white placeholder-gray-500'
+
+  return (
+    <div>
+      <div className="flex gap-2 items-center">
+
+        {/* barcode */}
+        <div className="flex-1 min-w-0 relative">
+          <input
+            className={`w-full ${baseInp} ${borderColor}`}
+            placeholder="Barcode"
+            value={item.barcode}
+            onChange={e => {
+              onChange(idx, '__bulk', {
+                barcode: e.target.value,
+                fetchStatus: '',
+                productName: '', subProductName: '', purity: '', _inv: null,
+              })
+            }}
+            onBlur={() => item.barcode.trim() && fetchInventory(item.barcode)}
+            onKeyDown={handleKeyDown}
+          />
+          {item.fetchStatus === 'loading' && (
+            <span className="absolute right-3 top-1/2 -translate-y-1/2 text-yellow-400 text-xs animate-pulse">
+              …
+            </span>
+          )}
+        </div>
+
+        {/* weight — pre-filled from inventory */}
+        <input
+          className={`w-28 flex-shrink-0 ${baseInp} border-white/10`}
+          placeholder="Wt g"
+          type="number"
+          value={item.wt}
+          onChange={e => onChange(idx, 'wt', e.target.value)}
+        />
+
+        {/* size — pre-filled from inventory */}
+        <input
+          className={`w-24 flex-shrink-0 ${baseInp} border-white/10`}
+          placeholder="Size"
+          value={item.size}
+          onChange={e => onChange(idx, 'size', e.target.value)}
+        />
+
+        {showRemove && (
+          <button onClick={() => onRemove(idx)} className="text-red-400 px-2 text-xl flex-shrink-0">✕</button>
+        )}
+      </div>
+
+      {/* info chip on success */}
+      {item.fetchStatus === 'found' && <InventoryChip item={item._inv} />}
+
+      {/* not found warning */}
+      {item.fetchStatus === 'not_found' && (
+        <p className="mt-1.5 text-xs text-red-400">⚠ Barcode not found in inventory</p>
+      )}
     </div>
   )
 }
@@ -344,16 +435,19 @@ export default function NewTransaction() {
   const updateItem = (idx, field, value) =>
     setItems(prev => {
       const next = [...prev]
-      next[idx] = { ...next[idx], [field]: value }
+      if (field === '__bulk') {
+        next[idx] = { ...next[idx], ...value }
+      } else {
+        next[idx] = { ...next[idx], [field]: value }
+      }
       return next
     })
 
-  const addItem = () => {
-    const last = items[items.length - 1]
-    setItems(prev => [...prev, { barcode: last.barcode, wt: '', size: '' }])
-  }
+  const addItem = () =>
+    setItems(prev => [...prev, emptyItem()])
 
-  const removeItem = (idx) => setItems(prev => prev.filter((_, i) => i !== idx))
+  const removeItem = (idx) =>
+    setItems(prev => prev.filter((_, i) => i !== idx))
 
   const handleSave = async () => {
     if (!clientName.trim())       { setError('Client name is required');       return }
@@ -476,38 +570,23 @@ export default function NewTransaction() {
         </div>
 
         {mode === 'barcode' && (
-  <div className="space-y-3">
-    {items.map((item, i) => (
-      <div key={i} className="flex gap-2 items-center">
-        <input
-          className="flex-1 min-w-0 p-4 rounded-2xl bg-white/10 border border-white/10 outline-none focus:border-pink-400 text-white placeholder-gray-500"
-          placeholder="Barcode"
-          value={item.barcode}
-          onChange={e => updateItem(i, 'barcode', e.target.value)}
-        />
-        <input
-          className="w-28 flex-shrink-0 p-4 rounded-2xl bg-white/10 border border-white/10 outline-none focus:border-pink-400 text-white placeholder-gray-500"
-          placeholder="Wt g"
-          type="number"
-          value={item.wt}
-          onChange={e => updateItem(i, 'wt', e.target.value)}
-        />
-        <input
-          className="w-24 flex-shrink-0 p-4 rounded-2xl bg-white/10 border border-white/10 outline-none focus:border-pink-400 text-white placeholder-gray-500"
-          placeholder="Size"
-          value={item.size}
-          onChange={e => updateItem(i, 'size', e.target.value)}
-        />
-        {items.length > 1 && (
-          <button onClick={() => removeItem(i)} className="text-red-400 px-2 text-xl flex-shrink-0">✕</button>
+          <div className="space-y-4">
+            <p className="text-xs text-gray-500">Press Enter or tab out after typing a barcode to auto-fill weight & size from inventory.</p>
+            {items.map((item, i) => (
+              <BarcodeRow
+                key={i}
+                item={item}
+                idx={i}
+                onChange={updateItem}
+                onRemove={removeItem}
+                showRemove={items.length > 1}
+              />
+            ))}
+            <button onClick={addItem} className="text-pink-400 hover:text-pink-300 text-sm font-bold py-1">
+              + Add Barcode
+            </button>
+          </div>
         )}
-      </div>
-    ))}
-    <button onClick={addItem} className="text-pink-400 hover:text-pink-300 text-sm font-bold py-1">
-      + Add Barcode
-    </button>
-  </div>
-)}
 
         {mode === 'wt' && (
           <div className="grid grid-cols-2 gap-4">

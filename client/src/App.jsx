@@ -9,6 +9,7 @@ import Transactions from './pages/Transactions'
 import BarcodeSearch from './pages/BarcodeSearch'
 import CustomerHistory from './pages/CustomerHistory'
 import UploadInventory from './pages/UploadInventory'
+import InventorySearch from './pages/InventorySearch'
 import Clients from './pages/Clients'
 import PendingClients from './pages/PendingClients'
 
@@ -38,6 +39,7 @@ function App() {
           <Route path="barcode-search" element={<BarcodeSearch />} />
           <Route path="customer-history" element={<CustomerHistory />} />
           <Route path="upload-inventory" element={<UploadInventory />} />
+          <Route path="inventory-search" element={<InventorySearch />} />
           <Route path="clients" element={<Clients />} />
           <Route path="pending-clients" element={<PendingClients />} />
         </Route>

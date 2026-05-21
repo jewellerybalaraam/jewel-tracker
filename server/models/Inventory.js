@@ -2,41 +2,71 @@ import mongoose from 'mongoose'
 
 const inventorySchema = new mongoose.Schema(
   {
+    // ── Tagging metadata ──────────────────────────────────────
+    recordDate: {
+      type:    Date,
+      default: null          // RECDATE — date the item was tagged
+    },
+
+    recordTime: {
+      type:    String,
+      default: ''            // TIME — e.g. "4:20AM"
+    },
+
+    // ── Item identity ─────────────────────────────────────────
     barcode: {
-      type: String,
+      type:     String,
       required: true,
-      unique: true,
-      index: true
-    },
-
-    lotNo: {
-      type: Number,
-      required: true
-    },
-
-    tagNo: {
-      type: String,      // changed from Number — values like 'KILI1', 'LDK6'
-      required: true
+      unique:   true,
+      index:    true         // ITEMTAG — the physical tag barcode
     },
 
     productId: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: 'Product',
-      required: true
+      type:     Number,
+      required: true         // PROID — numeric product category code
     },
 
-    supplier:    { type: String,  default: '' },
-    grossWeight: { type: Number,  required: true },
-    netWeight:   { type: Number,  required: true },
-    boardRate:   { type: Number,  default: 0 },
-    mcPerGram:   { type: Number,  default: 0 },
-    mcAmount:    { type: Number,  default: 0 },
-    salePrice:   { type: Number,  default: 0 },
-    size:        { type: String,  default: '' },
+    productName: {
+      type:    String,
+      default: ''            // PRODUCTNAME
+    },
 
+    subProductName: {
+      type:    String,
+      default: ''            // SUBPRODUCTNAME
+    },
+
+    // ── Weight & size ─────────────────────────────────────────
+    netWt: {
+      type:    Number,
+      default: 0             // NETWT — net weight in grams
+    },
+
+    size: {
+      type:    String,
+      default: ''            // SIZE — optional (ring size etc.)
+    },
+
+    // ── Pricing ───────────────────────────────────────────────
+    makingCharge: {
+      type:    Number,
+      default: 0             // MC — making charge per gram
+    },
+
+    pureRate: {
+      type:    Number,
+      default: 0             // PURERATE
+    },
+
+    purity: {
+      type:    String,
+      default: ''            // TAGTYPE — e.g. "SLM", "95", "92.5", "65", "99"
+    },
+
+    // ── Stock status ──────────────────────────────────────────
     status: {
-      type: String,
-      enum: ['AVAILABLE', 'SOLD'],
+      type:    String,
+      enum:    ['AVAILABLE', 'SOLD'],
       default: 'AVAILABLE'
     }
   },
