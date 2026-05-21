@@ -1,71 +1,80 @@
 import { useEffect, useRef, useState } from 'react'
 import axios from 'axios'
 
+const API = import.meta.env.VITE_API_URL
+
+function StatusBadge({ status }) {
+  return (
+    <span className={`px-3 py-1 rounded-xl text-xs font-bold ${
+      status === 'SOLD'     ? 'bg-red-500' :
+      status === 'RETURNED' ? 'bg-green-500' :
+      'bg-yellow-400 text-black'
+    }`}>
+      {status}
+    </span>
+  )
+}
+
 export default function Transactions() {
 
-  const [transactions,  setTransactions]  = useState([])
-  const [search,        setSearch]        = useState('')
-  const [statusFilter,  setStatusFilter]  = useState('ALL')
-  const [editDateId,    setEditDateId]    = useState(null)
-  const [editDateVal,   setEditDateVal]   = useState('')
+  const [list,         setList]         = useState([])
+  const [search,       setSearch]       = useState('')
+  const [statusFilter, setStatusFilter] = useState('ALL')
+  const [editDateId,   setEditDateId]   = useState(null)
+  const [editDateVal,  setEditDateVal]  = useState('')
   const searchRef = useRef(null)
 
   useEffect(() => {
-    fetchTransactions()
+    fetchAll()
     searchRef.current?.focus()
   }, [])
 
-  const fetchTransactions = async () => {
+  const fetchAll = async () => {
     try {
-      const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/transactions`)
-      setTransactions(res.data)
-    } catch (err) { console.log(err) }
+      const res = await axios.get(`${API}/api/eerettu`)
+      setList(res.data)
+    } catch (e) { console.log(e) }
   }
 
-  const handleSaveDate = async (id) => {
-    try {
-      await axios.patch(
-        `${import.meta.env.VITE_API_URL}/api/transactions/${id}`,
-        { transactionDate: editDateVal }
-      )
-      setEditDateId(null)
-      fetchTransactions()
-    } catch (err) { console.log(err) }
+  const saveDate = async (id) => {
+    await axios.patch(`${API}/api/eerettu/${id}/date`, { date: editDateVal })
+    setEditDateId(null)
+    fetchAll()
   }
 
-  const filtered = transactions.filter(t => {
+  const fmtDate = (d) =>
+    new Date(d).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })
+
+  const isoDate = (d) => new Date(d).toISOString().split('T')[0]
+
+  const filtered = list.filter(e => {
     const q = search.toLowerCase()
     const matchSearch =
-      t.customerName?.toLowerCase().includes(q) ||
-      t.productName?.toLowerCase().includes(q) ||
-      t.items?.some(i => i.barcode?.toLowerCase().includes(q))
+      e.clientName?.toLowerCase().includes(q) ||
+      e.roughProductName?.toLowerCase().includes(q) ||
+      e.items?.some(i => i.barcode?.toLowerCase().includes(q))
 
     const matchStatus =
       statusFilter === 'ALL' ||
-      t.items?.some(i => i.status === statusFilter)
+      (e.mode === 'barcode' && e.items?.some(i => i.status === statusFilter)) ||
+      (e.mode === 'wt'      && e.wtMode?.status === statusFilter)
 
     return matchSearch && matchStatus
   })
 
-  const displayDate = (t) =>
-    new Date(t.transactionDate || t.createdAt).toLocaleDateString('en-IN', {
-      day: '2-digit', month: 'short', year: 'numeric',
-    })
-
-  const isoDate = (t) => {
-    const d = new Date(t.transactionDate || t.createdAt)
-    return d.toISOString().split('T')[0]
-  }
-
   return (
     <div className="p-4 sm:p-6 md:p-8 min-h-screen">
 
-      {/* ── SEARCH + FILTER ── */}
+      <h1 className="text-3xl font-black bg-gradient-to-r from-pink-400 via-orange-400 to-purple-500 bg-clip-text text-transparent mb-6">
+        Transactions
+      </h1>
+
+      {/* SEARCH + FILTER */}
       <div className="flex flex-col lg:flex-row gap-4 mb-8">
         <input
           ref={searchRef}
           type="text"
-          placeholder="Search customer, product, barcode..."
+          placeholder="Search client, product, barcode..."
           className="flex-1 p-4 rounded-2xl bg-white/10 backdrop-blur-lg border border-white/10 outline-none focus:border-pink-400"
           value={search}
           onChange={e => setSearch(e.target.value)}
@@ -82,113 +91,91 @@ export default function Transactions() {
         </select>
       </div>
 
-      {/* ── LIST ── */}
-      <div className="space-y-6">
-
+      {/* LIST */}
+      <div className="space-y-5">
         {filtered.length === 0 && (
-          <div className="text-center py-20 text-gray-400">No Transactions Found</div>
+          <p className="text-center py-20 text-gray-400">No Transactions Found</p>
         )}
 
-        {filtered.map(t => {
-          const totalPcs      = t.pcsTracking?.totalPieces    || 0
-          const returnedPcs   = t.pcsTracking?.returnedPieces || 0
-          const soldPcs       = totalPcs - returnedPcs
-          const totalWeight   = t.pcsTracking?.totalWeight    || 0
-          const returnedWeight = t.pcsTracking?.returnedWeight || 0
-          const soldWeight    = (totalWeight - returnedWeight).toFixed(2)
+        {filtered.map(e => (
+          <div key={e._id} className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-3xl p-5">
 
-          return (
-            <div key={t._id} className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-3xl p-5 shadow-xl">
-
-              {/* HEADER */}
-              <div className="flex flex-col md:flex-row md:justify-between gap-4 mb-5">
-                <div>
-                  <h2 className="text-2xl font-bold text-pink-300 break-words">{t.customerName}</h2>
-                  <p className="text-gray-300 text-lg">{t.productName}</p>
-                </div>
-
-                {/* DATE + EDIT */}
-                <div className="text-sm text-gray-400 flex items-center gap-2">
-                  {editDateId === t._id ? (
-                    <div className="flex items-center gap-2">
-                      <input
-                        type="date"
-                        value={editDateVal}
-                        onChange={e => setEditDateVal(e.target.value)}
-                        className="p-2 rounded-xl bg-white/10 border border-pink-400 outline-none text-white text-sm"
-                      />
-                      <button
-                        onClick={() => handleSaveDate(t._id)}
-                        className="bg-green-500 px-3 py-2 rounded-xl text-sm font-bold"
-                      >
-                        Save
-                      </button>
-                      <button
-                        onClick={() => setEditDateId(null)}
-                        className="bg-white/10 px-3 py-2 rounded-xl text-sm text-gray-400"
-                      >
-                        ✕
-                      </button>
-                    </div>
-                  ) : (
-                    <div className="flex items-center gap-2">
-                      <span>{displayDate(t)}</span>
-                      <button
-                        onClick={() => { setEditDateId(t._id); setEditDateVal(isoDate(t)) }}
-                        className="text-pink-400 hover:text-pink-300 text-xs bg-white/5 px-2 py-1 rounded-lg"
-                      >
-                        ✎ edit
-                      </button>
-                    </div>
-                  )}
-                </div>
+            {/* HEADER */}
+            <div className="flex flex-col md:flex-row md:justify-between gap-3 mb-4">
+              <div>
+                <h2 className="text-xl font-bold text-pink-300">{e.clientName}</h2>
+                <p className="text-orange-300 font-semibold">{e.roughProductName}</p>
+                <span className="text-xs text-gray-500 bg-white/5 px-2 py-0.5 rounded-lg">
+                  {e.mode === 'barcode' ? 'Barcode Mode' : 'Wt Mode'}
+                </span>
               </div>
 
-              {/* PCS MODE */}
-              {t.mode === 'pcs' && (
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-5">
-                  <div className="bg-black/30 rounded-2xl p-4">
-                    <p className="text-gray-400 text-sm">Total</p>
-                    <p className="font-bold text-lg">{totalPcs} pcs</p>
-                    <p className="text-gray-300">{totalWeight} g</p>
+              {/* DATE EDIT */}
+              <div className="text-sm text-gray-400 flex items-center gap-2">
+                {editDateId === e._id ? (
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="date"
+                      value={editDateVal}
+                      onChange={ev => setEditDateVal(ev.target.value)}
+                      className="p-2 rounded-xl bg-white/10 border border-pink-400 outline-none text-white text-sm"
+                    />
+                    <button onClick={() => saveDate(e._id)} className="bg-green-500 px-3 py-2 rounded-xl text-sm font-bold">Save</button>
+                    <button onClick={() => setEditDateId(null)} className="bg-white/10 px-3 py-2 rounded-xl text-sm text-gray-400">✕</button>
                   </div>
-                  <div className="bg-red-500/20 rounded-2xl p-4">
-                    <p className="text-red-300 text-sm">Sold</p>
-                    <p className="font-bold text-lg">{soldPcs} pcs</p>
-                    <p className="text-gray-200">{soldWeight} g</p>
+                ) : (
+                  <div className="flex items-center gap-2">
+                    <span>{fmtDate(e.date || e.createdAt)}</span>
+                    <button
+                      onClick={() => { setEditDateId(e._id); setEditDateVal(isoDate(e.date || e.createdAt)) }}
+                      className="text-pink-400 text-xs bg-white/5 px-2 py-1 rounded-lg hover:bg-white/10"
+                    >
+                      ✎ edit
+                    </button>
                   </div>
-                  <div className="bg-green-500/20 rounded-2xl p-4">
-                    <p className="text-green-300 text-sm">Returned</p>
-                    <p className="font-bold text-lg">{returnedPcs} pcs</p>
-                    <p className="text-gray-200">{returnedWeight} g</p>
-                  </div>
-                </div>
-              )}
-
-              {/* BARCODE MODE */}
-              {t.mode === 'barcode' && (
-                <div className="space-y-3">
-                  {t.items?.map((item, idx) => (
-                    <div key={idx} className="bg-black/30 p-4 rounded-2xl flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-                      <div>
-                        <p className="font-bold break-all text-lg">{item.barcode}</p>
-                        <p className="text-sm text-gray-400">{item.weight} g</p>
-                      </div>
-                      <span className={`px-4 py-2 rounded-xl font-bold w-fit ${
-                        item.status === 'SOLD'     ? 'bg-red-500' :
-                        item.status === 'RETURNED' ? 'bg-green-500' :
-                        'bg-yellow-400 text-black'
-                      }`}>
-                        {item.status}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              )}
-
+                )}
+              </div>
             </div>
-          )
-        })}
+
+            {/* BARCODE MODE */}
+            {e.mode === 'barcode' && (
+              <div className="space-y-2">
+                {e.items?.map((item, idx) => (
+                  <div key={idx} className="bg-black/30 p-3 rounded-2xl flex flex-col md:flex-row md:items-center md:justify-between gap-2">
+                    <div className="flex gap-4 text-sm">
+                      <span className="font-bold">{item.barcode}</span>
+                      {item.wt  > 0 && <span className="text-gray-400">{item.wt} g</span>}
+                      {item.size    && <span className="text-gray-400">Size: {item.size}</span>}
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <StatusBadge status={item.status} />
+                      {item.status === 'SOLD' && item.billBookNo &&
+                        <span className="text-xs text-gray-500">Book {item.billBookNo} / Pg {item.billPageNo}</span>
+                      }
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* WT MODE */}
+            {e.mode === 'wt' && (
+              <div className="bg-black/30 p-4 rounded-2xl flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+                <div className="flex gap-6 text-sm">
+                  <span className="text-gray-300">{e.wtMode?.totalPcs} pcs</span>
+                  <span className="text-gray-300">{e.wtMode?.totalWt} g</span>
+                </div>
+                <div className="flex items-center gap-3">
+                  <StatusBadge status={e.wtMode?.status} />
+                  {e.wtMode?.status === 'SOLD' && e.wtMode?.billBookNo &&
+                    <span className="text-xs text-gray-500">Book {e.wtMode.billBookNo} / Pg {e.wtMode.billPageNo}</span>
+                  }
+                </div>
+              </div>
+            )}
+
+          </div>
+        ))}
       </div>
     </div>
   )

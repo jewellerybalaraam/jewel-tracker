@@ -1,181 +1,134 @@
 import { useEffect, useState } from 'react'
 import axios from 'axios'
 
-const emptyForm = {
-  name: '', mobile: '', whatsapp: '',
-  storeName: '', address: '', gstNo: '', notes: '',
-}
+const API = import.meta.env.VITE_API_URL
 
 export default function Clients() {
 
-  const [clients,    setClients]    = useState([])
-  const [form,       setForm]       = useState(emptyForm)
-  const [editId,     setEditId]     = useState(null)
-  const [editForm,   setEditForm]   = useState(null)
-  const [saving,     setSaving]     = useState(false)
+  const [clients,     setClients]     = useState([])
+  const [newName,     setNewName]     = useState('')
+  const [saving,      setSaving]      = useState(false)
+  const [expandId,    setExpandId]    = useState(null)
+  const [newMobile,   setNewMobile]   = useState('')
 
   useEffect(() => { fetchClients() }, [])
 
   const fetchClients = async () => {
     try {
-      const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/clients`)
+      const res = await axios.get(`${API}/api/clients`)
       setClients(res.data)
-    } catch (err) { console.log(err) }
+    } catch (e) { console.log(e) }
   }
 
   const handleAdd = async () => {
-    if (!form.name.trim()) return
+    if (!newName.trim()) return
     try {
       setSaving(true)
-      await axios.post(`${import.meta.env.VITE_API_URL}/api/clients`, form)
-      setForm(emptyForm)
+      await axios.post(`${API}/api/clients`, { clientName: newName.trim() })
+      setNewName('')
       fetchClients()
-    } catch (err) { console.log(err) }
-    finally { setSaving(false) }
+    } catch (e) {
+      alert(e.response?.data?.message || 'Error')
+    } finally { setSaving(false) }
   }
 
-  const startEdit = (client) => {
-    setEditId(client._id)
-    setEditForm({
-      name:      client.name      || '',
-      mobile:    client.mobile    || '',
-      whatsapp:  client.whatsapp  || '',
-      storeName: client.storeName || '',
-      address:   client.address   || '',
-      gstNo:     client.gstNo     || '',
-      notes:     client.notes     || '',
-    })
+  const addMobile = async (clientName) => {
+    if (!newMobile.trim()) return
+    await axios.patch(`${API}/api/clients/${encodeURIComponent(clientName)}/add-mobile`, { mobile: newMobile.trim() })
+    setNewMobile('')
+    fetchClients()
   }
 
-  const handleSaveEdit = async () => {
-    if (!editForm.name.trim()) return
-    try {
-      setSaving(true)
-      await axios.patch(
-        `${import.meta.env.VITE_API_URL}/api/clients/${editId}`,
-        editForm
-      )
-      setEditId(null)
-      setEditForm(null)
-      fetchClients()
-    } catch (err) { console.log(err) }
-    finally { setSaving(false) }
+  const removeMobile = async (clientName, mobile) => {
+    await axios.patch(`${API}/api/clients/${encodeURIComponent(clientName)}/remove-mobile`, { mobile })
+    fetchClients()
   }
 
-  const inputCls = 'w-full p-4 rounded-2xl bg-black/30 border border-white/10 outline-none focus:border-pink-400 text-white placeholder-gray-500'
-
-  const fields = [
-    { key: 'name',      placeholder: 'Client Name *' },
-    { key: 'mobile',    placeholder: 'Mobile Number' },
-    { key: 'whatsapp',  placeholder: 'WhatsApp Number' },
-    { key: 'storeName', placeholder: 'Store Name' },
-    { key: 'address',   placeholder: 'Address' },
-    { key: 'gstNo',     placeholder: 'GST Number' },
-  ]
+  const inp = 'w-full p-4 rounded-2xl bg-white/10 border border-white/10 outline-none focus:border-pink-400 text-white placeholder-gray-500'
 
   return (
-    <div className="p-6 space-y-8 max-w-3xl">
+    <div className="p-6 max-w-2xl space-y-6">
 
       <h1 className="text-3xl font-black bg-gradient-to-r from-pink-400 via-orange-400 to-purple-500 bg-clip-text text-transparent">
         Clients
       </h1>
 
-      {/* ── ADD FORM ── */}
-      <div className="bg-white/5 border border-white/10 rounded-3xl p-6 space-y-4">
-        <p className="text-gray-400 text-sm">Add New Client (only name is required)</p>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {fields.map(({ key, placeholder }) => (
-            <input
-              key={key}
-              className={inputCls}
-              placeholder={placeholder}
-              value={form[key]}
-              onChange={e => setForm({ ...form, [key]: e.target.value })}
-            />
-          ))}
-          <textarea
-            className={`${inputCls} md:col-span-2`}
-            placeholder="Notes"
-            rows={3}
-            value={form.notes}
-            onChange={e => setForm({ ...form, notes: e.target.value })}
-          />
-        </div>
-
+      {/* ADD CLIENT */}
+      <div className="bg-white/5 border border-white/10 rounded-3xl p-6 flex gap-3">
+        <input
+          className={`${inp} flex-1`}
+          placeholder="New client name"
+          value={newName}
+          onChange={e => setNewName(e.target.value)}
+          onKeyDown={e => e.key === 'Enter' && handleAdd()}
+        />
         <button
           onClick={handleAdd}
-          disabled={saving || !form.name.trim()}
-          className="bg-gradient-to-r from-pink-500 to-purple-500 px-8 py-3 rounded-2xl font-bold disabled:opacity-50"
+          disabled={saving || !newName.trim()}
+          className="bg-gradient-to-r from-pink-500 to-purple-500 px-6 py-4 rounded-2xl font-bold disabled:opacity-50 whitespace-nowrap"
         >
-          Add Client
+          Add
         </button>
       </div>
 
-      {/* ── CLIENT LIST ── */}
-      <div className="space-y-4">
-        {clients.map(client => (
-          <div
-            key={client._id}
-            className="bg-white/5 border border-white/10 rounded-3xl p-5"
-          >
-            {editId === client._id ? (
+      {/* CLIENT LIST */}
+      <div className="space-y-3">
+        {clients.map(c => (
+          <div key={c._id} className="bg-white/5 border border-white/10 rounded-3xl p-5">
 
-              /* ── EDIT MODE ── */
-              <div className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {fields.map(({ key, placeholder }) => (
-                    <input
-                      key={key}
-                      className={inputCls}
-                      placeholder={placeholder}
-                      value={editForm[key]}
-                      onChange={e => setEditForm({ ...editForm, [key]: e.target.value })}
-                    />
-                  ))}
-                  <textarea
-                    className={`${inputCls} md:col-span-2`}
-                    placeholder="Notes"
-                    rows={3}
-                    value={editForm.notes}
-                    onChange={e => setEditForm({ ...editForm, notes: e.target.value })}
+            <div
+              className="flex justify-between items-center cursor-pointer"
+              onClick={() => setExpandId(expandId === c._id ? null : c._id)}
+            >
+              <div>
+                <h2 className="text-lg font-bold text-pink-300">{c.clientName}</h2>
+                <p className="text-xs text-gray-500 mt-0.5">
+                  {c.mobiles?.length > 0
+                    ? c.mobiles.join(' · ')
+                    : 'No mobile numbers'}
+                </p>
+              </div>
+              <span className="text-gray-500 text-sm">{expandId === c._id ? '▲' : '▼'}</span>
+            </div>
+
+            {expandId === c._id && (
+              <div className="mt-4 space-y-3 border-t border-white/10 pt-4">
+
+                {/* MOBILE LIST */}
+                {c.mobiles?.length > 0 && (
+                  <div className="flex flex-wrap gap-2">
+                    {c.mobiles.map(m => (
+                      <div key={m} className="flex items-center gap-1 bg-black/30 px-3 py-1.5 rounded-xl">
+                        <span className="text-sm text-white">{m}</span>
+                        <button
+                          onClick={() => removeMobile(c.clientName, m)}
+                          className="text-red-400 hover:text-red-300 text-xs ml-1"
+                        >
+                          ✕
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* ADD MOBILE */}
+                <div className="flex gap-2">
+                  <input
+                    className="flex-1 p-3 rounded-2xl bg-white/10 border border-white/10 outline-none focus:border-pink-400 text-white placeholder-gray-500 text-sm"
+                    placeholder="Add mobile number"
+                    value={newMobile}
+                    onChange={e => setNewMobile(e.target.value)}
+                    onKeyDown={e => e.key === 'Enter' && addMobile(c.clientName)}
                   />
-                </div>
-                <div className="flex gap-3">
                   <button
-                    onClick={handleSaveEdit}
-                    disabled={saving}
-                    className="bg-gradient-to-r from-pink-500 to-purple-500 px-6 py-3 rounded-2xl font-bold disabled:opacity-50"
+                    onClick={() => addMobile(c.clientName)}
+                    className="bg-pink-500 px-4 py-3 rounded-2xl font-bold text-sm"
                   >
-                    Save
-                  </button>
-                  <button
-                    onClick={() => { setEditId(null); setEditForm(null) }}
-                    className="bg-white/10 px-6 py-3 rounded-2xl font-bold text-gray-400"
-                  >
-                    Cancel
+                    + Add
                   </button>
                 </div>
+
               </div>
-
-            ) : (
-
-              /* ── VIEW MODE ── */
-              <div className="flex justify-between items-start gap-4">
-                <div>
-                  <h2 className="text-xl font-bold text-pink-300">{client.name}</h2>
-                  {client.storeName && <p className="text-gray-300">{client.storeName}</p>}
-                  {client.mobile    && <p className="text-gray-400 text-sm">{client.mobile}</p>}
-                  {client.address   && <p className="text-gray-500 text-sm">{client.address}</p>}
-                </div>
-                <button
-                  onClick={() => startEdit(client)}
-                  className="text-pink-400 hover:text-pink-300 text-sm font-bold bg-white/5 px-4 py-2 rounded-xl"
-                >
-                  Edit
-                </button>
-              </div>
-
             )}
           </div>
         ))}
