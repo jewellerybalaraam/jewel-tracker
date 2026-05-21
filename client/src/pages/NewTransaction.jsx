@@ -476,22 +476,38 @@ export default function NewTransaction() {
         </div>
 
         {mode === 'barcode' && (
-          <div className="space-y-3">
-            {items.map((item, i) => (
-              <div key={i} className="flex gap-2 items-center">
-                <input className={`${inp} flex-1 min-w-0`} placeholder="Barcode" value={item.barcode} onChange={e => updateItem(i, 'barcode', e.target.value)} />
-                <input className={`${inp} w-24 flex-shrink-0`} placeholder="Wt g" type="number" value={item.wt} onChange={e => updateItem(i, 'wt', e.target.value)} />
-                <input className={`${inp} w-20 flex-shrink-0`} placeholder="Size" value={item.size} onChange={e => updateItem(i, 'size', e.target.value)} />
-                {items.length > 1 && (
-                  <button onClick={() => removeItem(i)} className="text-red-400 px-2 text-xl flex-shrink-0">✕</button>
-                )}
-              </div>
-            ))}
-            <button onClick={addItem} className="text-pink-400 hover:text-pink-300 text-sm font-bold py-1">
-              + Add Barcode
-            </button>
-          </div>
+  <div className="space-y-3">
+    {items.map((item, i) => (
+      <div key={i} className="flex gap-2 items-center">
+        <input
+          className="flex-1 min-w-0 p-4 rounded-2xl bg-white/10 border border-white/10 outline-none focus:border-pink-400 text-white placeholder-gray-500"
+          placeholder="Barcode"
+          value={item.barcode}
+          onChange={e => updateItem(i, 'barcode', e.target.value)}
+        />
+        <input
+          className="w-28 flex-shrink-0 p-4 rounded-2xl bg-white/10 border border-white/10 outline-none focus:border-pink-400 text-white placeholder-gray-500"
+          placeholder="Wt g"
+          type="number"
+          value={item.wt}
+          onChange={e => updateItem(i, 'wt', e.target.value)}
+        />
+        <input
+          className="w-24 flex-shrink-0 p-4 rounded-2xl bg-white/10 border border-white/10 outline-none focus:border-pink-400 text-white placeholder-gray-500"
+          placeholder="Size"
+          value={item.size}
+          onChange={e => updateItem(i, 'size', e.target.value)}
+        />
+        {items.length > 1 && (
+          <button onClick={() => removeItem(i)} className="text-red-400 px-2 text-xl flex-shrink-0">✕</button>
         )}
+      </div>
+    ))}
+    <button onClick={addItem} className="text-pink-400 hover:text-pink-300 text-sm font-bold py-1">
+      + Add Barcode
+    </button>
+  </div>
+)}
 
         {mode === 'wt' && (
           <div className="grid grid-cols-2 gap-4">
