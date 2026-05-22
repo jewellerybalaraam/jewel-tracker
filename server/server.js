@@ -7,6 +7,7 @@ import authRoutes      from './routes/authRoutes.js'
 import clientRoutes    from './routes/clientRoutes.js'
 import inventoryRoutes from './routes/inventoryRoutes.js'
 import eerettuRoutes   from './routes/eerettuRoutes.js'
+import walletRoutes    from './routes/walletRoutes.js'
 
 dotenv.config()
 
@@ -20,6 +21,7 @@ app.use('/api/auth',      authRoutes)
 app.use('/api/clients',   clientRoutes)
 app.use('/api/inventory', inventoryRoutes)
 app.use('/api/eerettu',   eerettuRoutes)
+app.use('/api/wallet',    walletRoutes)
 
 mongoose.connect(process.env.MONGO_URI)
   .then(() => console.log('MongoDB Connected'))

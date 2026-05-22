@@ -4,7 +4,11 @@ import axios from 'axios'
 const API = import.meta.env.VITE_API_URL
 
 const todayStr = () => new Date().toISOString().split('T')[0]
-const emptyItem = () => ({ barcode: '', wt: '', size: '', productName: '', subProductName: '', purity: '', fetchStatus: '' })
+const emptyItem = () => ({
+  barcode: '', wt: '', size: '',
+  productName: '', subProductName: '', purity: '',
+  fetchStatus: '', _autoAdvanced: false,
+})
 
 // QR codes often encode "104-CHPS16" but inventory stores "104CHPS16"
 const normalizeBarcode = (code) => code.replace(/-/g, '')
@@ -298,7 +302,7 @@ function InventoryChip({ item }) {
 
 
 // ── single barcode row with auto-fill ──────────────────────
-function BarcodeRow({ item, idx, onChange, onRemove, showRemove }) {
+function BarcodeRow({ item, idx, onChange, onRemove, showRemove, inputRef }) {
 
   const fetchInventory = async (barcode) => {
     const normalized = normalizeBarcode(barcode.trim())
@@ -343,6 +347,7 @@ function BarcodeRow({ item, idx, onChange, onRemove, showRemove }) {
         {/* barcode */}
         <div className="flex-1 min-w-0 relative">
           <input
+            ref={inputRef}
             className={`w-full ${baseInp} ${borderColor}`}
             placeholder="Barcode"
             value={item.barcode}
@@ -351,6 +356,7 @@ function BarcodeRow({ item, idx, onChange, onRemove, showRemove }) {
                 barcode: e.target.value,
                 fetchStatus: '',
                 productName: '', subProductName: '', purity: '', _inv: null,
+                _autoAdvanced: false,
               })
             }}
             onBlur={() => item.barcode.trim() && fetchInventory(item.barcode)}
@@ -414,6 +420,8 @@ export default function NewTransaction() {
   const [refreshToday,      setRefreshToday]      = useState(0)
 
   const dropdownRef = useRef(null)
+  const inputRefs   = useRef([])      // refs to barcode inputs
+  const focusNext   = useRef(false)   // whether to focus the last row after re-render
 
   useEffect(() => {
     if (!clientName.trim()) { setClientSuggestions([]); return }
@@ -436,6 +444,37 @@ export default function NewTransaction() {
     return () => document.removeEventListener('mousedown', handler)
   }, [])
 
+  // auto-advance — when last row has a found barcode AND wt is filled,
+  // append a fresh row and focus its barcode input
+  useEffect(() => {
+    if (mode !== 'barcode') return
+    const last = items[items.length - 1]
+    if (
+      last &&
+      !last._autoAdvanced &&
+      last.fetchStatus === 'found' &&
+      last.barcode.trim() &&
+      last.wt && parseFloat(last.wt) > 0
+    ) {
+      // mark current last row as already advanced so we only do this once per row
+      setItems(prev => {
+        const next = [...prev]
+        next[next.length - 1] = { ...next[next.length - 1], _autoAdvanced: true }
+        return [...next, emptyItem()]
+      })
+      focusNext.current = true
+    }
+  }, [items, mode])
+
+  useEffect(() => {
+    if (focusNext.current) {
+      const lastIdx = items.length - 1
+      const el = inputRefs.current[lastIdx]
+      if (el) el.focus()
+      focusNext.current = false
+    }
+  }, [items])
+
   const updateItem = (idx, field, value) =>
     setItems(prev => {
       const next = [...prev]
@@ -447,8 +486,10 @@ export default function NewTransaction() {
       return next
     })
 
-  const addItem = () =>
+  const addItem = () => {
     setItems(prev => [...prev, emptyItem()])
+    focusNext.current = true
+  }
 
   const removeItem = (idx) =>
     setItems(prev => prev.filter((_, i) => i !== idx))
@@ -471,10 +512,13 @@ export default function NewTransaction() {
         const valid = items.filter(i => i.barcode.trim())
         if (!valid.length) { setError('Add at least one barcode'); setSaving(false); return }
         payload.items = valid.map(i => ({
-          barcode: i.barcode.trim(),
-          wt:      parseFloat(i.wt) || 0,
-          size:    i.size.trim(),
-          status:  'PENDING',
+          barcode:        i.barcode.trim(),
+          wt:             parseFloat(i.wt) || 0,
+          size:           i.size.trim(),
+          productName:    i.productName    || '',
+          subProductName: i.subProductName || '',
+          purity:         i.purity         || '',
+          status:         'PENDING',
         }))
       } else {
         if (!totalPcs) { setError('Enter total pieces'); setSaving(false); return }
@@ -575,7 +619,10 @@ export default function NewTransaction() {
 
         {mode === 'barcode' && (
           <div className="space-y-4">
-            <p className="text-xs text-gray-500">Press Enter or tab out after typing a barcode to auto-fill weight & size from inventory.</p>
+            <p className="text-xs text-gray-500">
+              Scan a barcode → weight & size auto-fill from inventory → a new row opens automatically.
+              Barcodes not found in inventory keep focus so you can fix them.
+            </p>
             {items.map((item, i) => (
               <BarcodeRow
                 key={i}
@@ -584,6 +631,7 @@ export default function NewTransaction() {
                 onChange={updateItem}
                 onRemove={removeItem}
                 showRemove={items.length > 1}
+                inputRef={(el) => { inputRefs.current[i] = el }}
               />
             ))}
             <button onClick={addItem} className="text-pink-400 hover:text-pink-300 text-sm font-bold py-1">
