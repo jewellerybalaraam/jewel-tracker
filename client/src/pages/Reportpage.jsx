@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useState, useRef } from 'react'
 import axios from 'axios'
 import {
-  FaFileExcel, FaFilePdf, FaPrint, FaSearch, FaFilter,
-  FaChevronDown, FaBoxOpen, FaTag, FaFileInvoiceDollar,
+  FaDownload, FaFilePdf, FaPrint, FaSearch, FaFilter,
+  FaChevronDown, FaBoxOpen, FaTag, FaReceipt,
   FaBalanceScale, FaHistory, FaCalendarAlt, FaTimes,
 } from 'react-icons/fa'
 
@@ -136,7 +136,7 @@ function triggerPrint(sectionRef, title, clientName) {
 const REPORT_TYPES = [
   { id: 'pending',   label: 'Pending Items',   icon: <FaBoxOpen />,           color: 'from-amber-500 to-orange-500' },
   { id: 'sold',      label: 'Sold Items',       icon: <FaTag />,               color: 'from-red-500 to-pink-500' },
-  { id: 'unpaid',    label: 'Unpaid Bills',     icon: <FaFileInvoiceDollar />, color: 'from-purple-500 to-indigo-500' },
+  { id: 'unpaid',    label: 'Unpaid Bills',     icon: <FaReceipt />, color: 'from-purple-500 to-indigo-500' },
   { id: 'due',       label: 'Due Summary',      icon: <FaBalanceScale />,      color: 'from-teal-500 to-cyan-500' },
   { id: 'history',   label: 'Full History',     icon: <FaHistory />,           color: 'from-pink-500 to-rose-500' },
 ]
@@ -178,7 +178,7 @@ function PendingReport({ rows, clientName, printRef }) {
       <div className="flex gap-2 mb-4">
         <button onClick={exportCSV}
           className="flex items-center gap-2 px-4 py-2 rounded-xl bg-green-600 hover:bg-green-500 text-white text-sm font-semibold transition-all">
-          <FaFileExcel /> Export Excel
+          <FaDownload /> Export Excel
         </button>
         <button onClick={() => triggerPrint(printRef, 'Pending Items Report', clientName)}
           className="flex items-center gap-2 px-4 py-2 rounded-xl bg-red-600 hover:bg-red-500 text-white text-sm font-semibold transition-all">
@@ -256,7 +256,7 @@ function SoldReport({ rows, clientName, printRef }) {
       <div className="flex gap-2 mb-4">
         <button onClick={exportCSV}
           className="flex items-center gap-2 px-4 py-2 rounded-xl bg-green-600 hover:bg-green-500 text-white text-sm font-semibold transition-all">
-          <FaFileExcel /> Export Excel
+          <FaDownload /> Export Excel
         </button>
         <button onClick={() => triggerPrint(printRef, 'Sold Items Report', clientName)}
           className="flex items-center gap-2 px-4 py-2 rounded-xl bg-red-600 hover:bg-red-500 text-white text-sm font-semibold transition-all">
@@ -346,7 +346,7 @@ function UnpaidBillsReport({ bills, clientName, printRef }) {
       <div className="flex gap-2 mb-4">
         <button onClick={exportCSV}
           className="flex items-center gap-2 px-4 py-2 rounded-xl bg-green-600 hover:bg-green-500 text-white text-sm font-semibold transition-all">
-          <FaFileExcel /> Export Excel
+          <FaDownload /> Export Excel
         </button>
         <button onClick={() => triggerPrint(printRef, 'Unpaid Bills Report', clientName)}
           className="flex items-center gap-2 px-4 py-2 rounded-xl bg-red-600 hover:bg-red-500 text-white text-sm font-semibold transition-all">
@@ -469,7 +469,7 @@ function DueSummaryReport({ rows, bills, clientName, printRef }) {
       <div className="flex gap-2 mb-5">
         <button onClick={exportCSV}
           className="flex items-center gap-2 px-4 py-2 rounded-xl bg-green-600 hover:bg-green-500 text-white text-sm font-semibold transition-all">
-          <FaFileExcel /> Export Excel
+          <FaDownload /> Export Excel
         </button>
         <button onClick={() => triggerPrint(printRef, 'Due Summary Report', clientName)}
           className="flex items-center gap-2 px-4 py-2 rounded-xl bg-red-600 hover:bg-red-500 text-white text-sm font-semibold transition-all">
@@ -510,7 +510,7 @@ function DueSummaryReport({ rows, bills, clientName, printRef }) {
           {/* Unpaid Bills Summary */}
           <div className="bg-purple-500/10 border border-purple-500/30 rounded-2xl p-5">
             <div className="flex items-center gap-2 mb-4">
-              <FaFileInvoiceDollar className="text-purple-400" />
+              <FaReceipt className="text-purple-400" />
               <h3 className="font-bold text-purple-300">Unpaid Bills</h3>
             </div>
             <div className="space-y-2">
@@ -599,7 +599,7 @@ function FullHistoryReport({ rows, bills, clientName, printRef }) {
       <div className="flex gap-2 mb-4">
         <button onClick={exportCSV}
           className="flex items-center gap-2 px-4 py-2 rounded-xl bg-green-600 hover:bg-green-500 text-white text-sm font-semibold transition-all">
-          <FaFileExcel /> Export Excel
+          <FaDownload /> Export Excel
         </button>
         <button onClick={() => triggerPrint(printRef, 'Full Transaction History', clientName)}
           className="flex items-center gap-2 px-4 py-2 rounded-xl bg-red-600 hover:bg-red-500 text-white text-sm font-semibold transition-all">
