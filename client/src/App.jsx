@@ -17,6 +17,7 @@ import PendingClientsList from './pages/PendingClientsList'
 import SoldLedger from './pages/SoldLedger'
 import ClientPage from './pages/ClientPage'
 import ReportPage from "./pages/Reportpage";
+import UserManagement from './pages/UserManagement'
 
 function ProtectedRoute({ children }) {
   const { isLoggedIn } = useAuth()
@@ -52,6 +53,7 @@ function App() {
           <Route path="sold-ledger" element={<SoldLedger />} />
           <Route path="client/:clientName" element={<ClientPage />} />
           <Route path="reports" element={<ReportPage />} />
+          <Route path="users" element={<UserManagement />} />
         </Route>
 
         <Route path="*" element={<Navigate to="/" replace />} />
