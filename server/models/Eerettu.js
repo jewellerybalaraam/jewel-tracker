@@ -7,13 +7,14 @@ const barcodeItemSchema = new mongoose.Schema({
   productName:    { type: String, default: '' },
   subProductName: { type: String, default: '' },
   purity:         { type: String, default: '' },
-  status:         { type: String, enum: ['PENDING', 'RETURNED', 'SOLD'], default: 'PENDING' },
+  status:         { type: String, enum: ['PENDING','RETURNED','SOLD'], default: 'PENDING' },
   billBookNo:     { type: String, default: '' },
   billPageNo:     { type: String, default: '' },
   pureDue:        { type: Number, default: 0 },
   cashDue:        { type: Number, default: 0 },
   soldAt:         { type: Date,   default: null },
   returnedAt:     { type: Date,   default: null },
+  billId:         { type: mongoose.Schema.Types.ObjectId, ref: 'Bill', default: null },
 })
 
 const eerettuSchema = new mongoose.Schema(
@@ -21,10 +22,8 @@ const eerettuSchema = new mongoose.Schema(
     clientName:       { type: String, required: true },
     roughProductName: { type: String, required: true },
     date:             { type: Date, default: Date.now },
-    mode:             { type: String, enum: ['barcode', 'wt'], required: true },
-
+    mode:             { type: String, enum: ['barcode','wt'], required: true },
     items: [barcodeItemSchema],
-
     wtMode: {
       totalPcs:    { type: Number, default: 0 },
       totalWt:     { type: Number, default: 0 },
@@ -33,13 +32,14 @@ const eerettuSchema = new mongoose.Schema(
       soldPcs:     { type: Number, default: 0 },
       soldWt:      { type: Number, default: 0 },
       purity:      { type: String, default: '' },
-      status:      { type: String, enum: ['PENDING', 'RETURNED', 'SOLD'], default: 'PENDING' },
+      status:      { type: String, enum: ['PENDING','RETURNED','SOLD'], default: 'PENDING' },
       billBookNo:  { type: String, default: '' },
       billPageNo:  { type: String, default: '' },
       pureDue:     { type: Number, default: 0 },
       cashDue:     { type: Number, default: 0 },
       soldAt:      { type: Date,   default: null },
       returnedAt:  { type: Date,   default: null },
+      billId:      { type: mongoose.Schema.Types.ObjectId, ref: 'Bill', default: null },
     },
   },
   { timestamps: true }
