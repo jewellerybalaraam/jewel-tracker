@@ -1,7 +1,5 @@
 import { useEffect, useState } from 'react'
-import axios from 'axios'
-
-const API = import.meta.env.VITE_API_URL
+import { api } from '../api'
 
 export default function Clients() {
 
@@ -15,7 +13,7 @@ export default function Clients() {
 
   const fetchClients = async () => {
     try {
-      const res = await axios.get(`${API}/api/clients`)
+      const res = await api.get('/clients')
       setClients(res.data)
     } catch (e) { console.log(e) }
   }
@@ -24,7 +22,7 @@ export default function Clients() {
     if (!newName.trim()) return
     try {
       setSaving(true)
-      await axios.post(`${API}/api/clients`, { clientName: newName.trim() })
+      await api.post('/clients', { clientName: newName.trim() })
       setNewName('')
       fetchClients()
     } catch (e) {
@@ -34,13 +32,13 @@ export default function Clients() {
 
   const addMobile = async (clientName) => {
     if (!newMobile.trim()) return
-    await axios.patch(`${API}/api/clients/${encodeURIComponent(clientName)}/add-mobile`, { mobile: newMobile.trim() })
+    await api.patch(`/clients/${encodeURIComponent(clientName)}/add-mobile`, { mobile: newMobile.trim() })
     setNewMobile('')
     fetchClients()
   }
 
   const removeMobile = async (clientName, mobile) => {
-    await axios.patch(`${API}/api/clients/${encodeURIComponent(clientName)}/remove-mobile`, { mobile })
+    await api.patch(`/clients/${encodeURIComponent(clientName)}/remove-mobile`, { mobile })
     fetchClients()
   }
 
