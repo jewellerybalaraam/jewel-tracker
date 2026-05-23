@@ -1,5 +1,6 @@
 import {
   FaChartPie,
+  FaChartBar,
   FaPlusCircle,
   FaExchangeAlt,
   FaSearch,
@@ -34,6 +35,7 @@ function Sidebar() {
     { name: "Upload Inventory", path: "/upload-inventory",  icon: <FaBoxOpen /> },
     { name: "Clients",          path: "/clients",           icon: <FaUsers /> },
     { name: "Pending",          path: "/pending-clients",   icon: <FaExchangeAlt /> },
+    { name: "Reports",          path: "/reports",           icon: <FaChartBar /> },
 
     ...(user?.role === "admin"
       ? [{ name: "Users", path: "/users", icon: <FaUsers /> }]
