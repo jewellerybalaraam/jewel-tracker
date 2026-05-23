@@ -43,15 +43,18 @@ export default function ReportsPage() {
 
     if (!q) return clients
 
-    return clients.filter((client) => {
-      const name = client?.clientName || ""
-      const phone = client?.phone || ""
+      return clients.filter((client) => {
+        const name = client?.clientName || ""
+        const phone =
+          client?.phone ||
+          client?.mobiles?.[0] ||
+          ""
 
-      return (
-        name.toLowerCase().includes(q) ||
-        phone.toLowerCase().includes(q)
-      )
-    })
+        return (
+          name.toLowerCase().includes(q) ||
+          String(phone).toLowerCase().includes(q)
+        )
+      })
   }, [clients, clientSearch])
 
   return (
