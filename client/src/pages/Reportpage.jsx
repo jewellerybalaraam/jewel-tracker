@@ -1,9 +1,43 @@
 
 import { useEffect, useMemo, useState } from "react"
-import axios from "axios"
-import { Search, ChevronDown, X } from "lucide-react"
+import { Search, ChevronDown, X, FileDown } from "lucide-react"
 import { api } from "../api"
 
+// reports data
+import { format } from "date-fns"
+
+// client-side PDF printing via browser print
+function printHtml(html) {
+  const w = window.open('', '_blank', 'width=900,height=700')
+  if (!w) return
+  w.document.write(html)
+  w.document.close()
+  w.focus()
+  w.print()
+}
+
+function toTableHtml(rows, columns, title) {
+  const header = columns.map((c) => `<th style="border:1px solid #ddd;padding:6px;background:#f4f4f4;">${c.header}</th>`).join('')
+  const body = rows
+    .map((r) => {
+      const tds = columns
+        .map((c) => {
+          const v = c.accessor(r)
+          return `<td style="border:1px solid #ddd;padding:6px;">${v ?? ''}</td>`
+        })
+        .join('')
+      return `<tr>${tds}</tr>`
+    })
+    .join('')
+
+  return `
+    <html><head><title>${title}</title></head>
+    <body style="font-family:Arial;padding:16px;">
+      <h2 style="margin-top:0;">${title}</h2>
+      <table style="border-collapse:collapse;width:100%;">${header}${body}</table>
+    </body></html>
+  `.trim()
+}
 
 export default function ReportsPage() {
   const [clients, setClients] = useState([])
