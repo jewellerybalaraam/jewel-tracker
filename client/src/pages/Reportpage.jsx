@@ -3,8 +3,7 @@ import { useEffect, useMemo, useState } from "react"
 import { Search, ChevronDown, X, FileDown } from "lucide-react"
 import { api } from "../api"
 
-// reports data
-import { format } from "date-fns"
+
 
 // client-side PDF printing via browser print
 function printHtml(html) {
