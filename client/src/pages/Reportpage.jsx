@@ -2,8 +2,8 @@
 import { useEffect, useMemo, useState } from "react"
 import axios from "axios"
 import { Search, ChevronDown, X } from "lucide-react"
+import { api } from "../api"
 
-const API = import.meta.env.VITE_API_URL
 
 export default function ReportsPage() {
   const [clients, setClients] = useState([])
@@ -20,7 +20,7 @@ export default function ReportsPage() {
     try {
       setLoading(true)
 
-      const response = await axios.get(`${API}/clients`)
+      const response = await api.get('/clients')
 
       console.log("CLIENT API RESPONSE:", response.data)
 
