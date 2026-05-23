@@ -16,7 +16,7 @@ import SoldPage from './pages/SoldPage'
 import PendingClientsList from './pages/PendingClientsList'
 import SoldLedger from './pages/SoldLedger'
 import ClientPage from './pages/ClientPage'
-import ReportPage from './pages/ReportPage'
+import ReportPage from "./pages/Reportpage";
 
 function ProtectedRoute({ children }) {
   const { isLoggedIn } = useAuth()
