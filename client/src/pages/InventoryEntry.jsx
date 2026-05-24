@@ -148,15 +148,16 @@ export default function InventoryEntry() {
     const { data } = await axios.get(`${API}/api/suppliers`, { params: { q } })
     return data.data || []
   }
-  
-const fetchProductsByName = useCallback(async (q) => {
-  const { data } = await axios.get(`${API}/api/products/search`, { params: { q, field: 'productName' } })
-  return data.data || []
-}, [])
-const fetchProductsBySub = useCallback(async (q) => {
-  const { data } = await axios.get(`${API}/api/products/search`, { params: { q, field: 'subProductName' } })
-  return data.data || []
-}, [])
+
+  const fetchProductsByName = useCallback(async (q) => {
+    const { data } = await axios.get(`${API}/api/products/search`, { params: { q, field: 'productName' } })
+    return data.data || []
+  }, [])
+
+  const fetchProductsBySub = useCallback(async (q) => {
+    const { data } = await axios.get(`${API}/api/products/search`, { params: { q, field: 'subProductName' } })
+    return data.data || []
+  }, [])
   const fetchPurities = async (q) => {
     const { data } = await axios.get(`${API}/api/products/search`, { params: { q: '', field: 'productName' } })
     const set = new Set((data.data || []).map(p => String(p.purity)))
@@ -437,7 +438,8 @@ const fetchProductsBySub = useCallback(async (q) => {
                 onChange={(patch) => setRow(idx, patch)}
                 onRemove={() => removeRow(idx)}
                 fetchSuppliers={fetchSuppliers}
-                productFetcher={productFetcher}
+                fetchProductsByName={fetchProductsByName}
+                fetchProductsBySub={fetchProductsBySub}
                 fetchPurities={fetchPurities}
                 openSupplierModal={(name) => setSupplierModal({ rowIdx: idx, initialName: name })}
                 openProductModal={(name) => setProductModal({ rowIdx: idx, initialName: name })}
@@ -770,7 +772,7 @@ function StepDot({ active, done, index, label }) {
 
 function ProductRow({
   idx, row, onChange, onRemove,
-  fetchSuppliers, productFetcher, fetchPurities,
+  fetchSuppliers, fetchProductsByName, fetchProductsBySub, fetchPurities,
   openSupplierModal, openProductModal,
 }) {
   return (
