@@ -82,6 +82,8 @@ export const createBill = async (req, res) => {
       // extras supplied by Direct Billing payment-balancing flow:
       extraToWallet = 0,   // pure-g surplus to park into client wallet
       extraCashOut  = 0,   // cash given to customer for surplus
+      note          = '',  // optional bill note
+      settlement    = { mode: 'cash' }, // settlement mode
     } = req.body
 
     if (!clientName) return res.status(400).json({ message: 'clientName required' })
@@ -101,6 +103,7 @@ export const createBill = async (req, res) => {
       clientName, customerMobile,
       silverRate, items,
       discountPure, discountCash, taxMode, taxes, totals,
+      note, settlement,
     })
 
     // Lock referenced items with billId / create inline wallet entries

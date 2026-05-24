@@ -85,6 +85,15 @@ const billSchema = new mongoose.Schema(
     payments:   [paymentSchema],
     paidAt:     { type: Date, default: null },
     status:     { type: String, enum: ['unpaid','paid'], default: 'unpaid' },
+
+    // ── optional note & settlement mode ─────────────────────
+    note: { type: String, default: '' },
+    settlement: {
+      mode:       { type: String, enum: ['cash','item'], default: 'cash' },
+      type:       { type: String, default: '' },     // e.g. 'london bar'
+      purity:     { type: Number, default: 0 },      // purity % used
+      itemWeight: { type: Number, default: 0 },      // pre-calc grams
+    },
   },
   { timestamps: true }
 )

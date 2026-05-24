@@ -616,6 +616,8 @@ function BillingItemRow({ id, data, overrides, setOverride, onRemove }) {
   )
 }
 
+const ITEM_TYPES = ['london bar','katcha bar','bhoondhi','OldJewel','OldSilver','OldGold']
+
 function BillingPanel({ checkoutItems, removeItem, clientName, onBillCreated }) {
   const [overrides, setOverrides] = useState({})  // id -> {purityPct,wastePct,wasteSign,mc}
   const [silverRate, setSilverRate] = useState('')
@@ -626,12 +628,26 @@ function BillingPanel({ checkoutItems, removeItem, clientName, onBillCreated }) 
   const [newTaxName, setNewTaxName] = useState('')
   const [newTaxPct, setNewTaxPct] = useState('')
   const [saving, setSaving] = useState(false)
+  // settlement
+  const [settleMode, setSettleMode] = useState('cash')  // 'cash' | 'item'
+  const [settleType, setSettleType] = useState('london bar')
+  const [settlePurity, setSettlePurity] = useState('100')
+  // note
+  const [billNote, setBillNote] = useState('')
 
   const setOverride = (id, val) => setOverrides(prev => ({ ...prev, [id]:val }))
 
   // Separate sold items (we give) vs wallet items (they give)
   const soldItems   = checkoutItems.filter(ci => !ci.data.walletEntry)
   const walletItems = checkoutItems.filter(ci =>  ci.data.walletEntry)
+
+  // Auto-fill settlement purity when type matches a wallet item
+  useEffect(() => {
+    if (settleMode === 'item') {
+      const match = walletItems.find(ci => ci.data.walletEntry?.type === settleType)
+      if (match?.data.walletEntry?.purity) setSettlePurity(match.data.walletEntry.purity)
+    }
+  }, [settleMode, settleType, walletItems.length])
 
   // Live totals
   const totals = useMemo(() => {
@@ -678,6 +694,18 @@ function BillingPanel({ checkoutItems, removeItem, clientName, onBillCreated }) 
     }
   }, [soldItems, walletItems, overrides, silverRate, discountPure, discountCash, taxMode, taxes])
 
+  // Settlement in item type
+  const settleCalc = useMemo(() => {
+    if (settleMode !== 'item') return null
+    const pPct = parseFloat(settlePurity) || 0
+    if (pPct <= 0) return null
+    const frac = pPct / 100
+    const pureInItem = n2(totals.netPure / frac)
+    const rate = parseFloat(silverRate) || 0
+    const fullInItem = rate > 0 ? n2(totals.finalCash / (rate * frac)) : null
+    return { pureInItem, fullInItem }
+  }, [settleMode, settlePurity, totals, silverRate])
+
   const handleBill = async () => {
     if (!checkoutItems.length) return alert('No items in checkout')
     setSaving(true)
@@ -720,11 +748,18 @@ function BillingPanel({ checkoutItems, removeItem, clientName, onBillCreated }) 
         clientName, silverRate:rate, items,
         discountPure:dp, discountCash:dc,
         taxMode, taxes,
+        note: billNote,
+        settlement: settleMode === 'item' ? {
+          mode: 'item', type: settleType,
+          purity: parseFloat(settlePurity)||0,
+          itemWeight: settleCalc ? Math.abs(settleCalc.fullInItem ?? settleCalc.pureInItem) : 0,
+        } : { mode: 'cash' },
       })
       // clear checkout
       checkoutItems.forEach(ci => removeItem(ci.id))
       setOverrides({}); setSilverRate(''); setDiscountPure(''); setDiscountCash('')
       setTaxMode(false); setTaxes([]); setNewTaxName(''); setNewTaxPct('')
+      setBillNote('')
       onBillCreated()
     } catch(e) { console.log(e); alert('Failed to create bill') }
     finally { setSaving(false) }
@@ -776,12 +811,19 @@ function BillingPanel({ checkoutItems, removeItem, clientName, onBillCreated }) 
           </div>
         )}
 
-        {/* Discount */}
-        <div className="grid grid-cols-2 gap-2">
-          <div><label className="text-xs text-gray-400 mb-1 block">Discount pure (g)</label>
-            <input type="number" className={inp} placeholder="0" value={discountPure} onChange={e=>setDiscountPure(e.target.value)} /></div>
-          <div><label className="text-xs text-gray-400 mb-1 block">Discount cash (₹)</label>
-            <input type="number" className={inp} placeholder="0" value={discountCash} onChange={e=>setDiscountCash(e.target.value)} /></div>
+        {/* Discount — fixed aligned grid */}
+        <div>
+          <p className="text-xs font-semibold text-gray-400 mb-2">Discount</p>
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <label className="text-[11px] text-gray-400 mb-1 block">Pure (g)</label>
+              <input type="number" className={`${inp} w-full`} placeholder="0" value={discountPure} onChange={e=>setDiscountPure(e.target.value)} />
+            </div>
+            <div>
+              <label className="text-[11px] text-gray-400 mb-1 block">Cash (₹)</label>
+              <input type="number" className={`${inp} w-full`} placeholder="0" value={discountCash} onChange={e=>setDiscountCash(e.target.value)} />
+            </div>
+          </div>
         </div>
 
         {/* Tax */}
@@ -810,14 +852,65 @@ function BillingPanel({ checkoutItems, removeItem, clientName, onBillCreated }) 
           )}
         </div>
 
-        {/* Final total */}
+        {/* Settlement mode */}
         {(soldItems.length>0||walletItems.length>0) && (
-          <div className={`rounded-2xl p-3 text-center ${totals.finalCash>=0?'bg-red-500/10 border border-red-500/20':'bg-green-500/10 border border-green-500/20'}`}>
-            <p className="text-xs text-gray-400 mb-1">{totals.finalCash>=0?'They owe us':'We owe them'}</p>
-            <p className={`text-2xl font-black ${totals.finalCash>=0?'text-red-300':'text-green-300'}`}>₹{Math.abs(totals.finalCash)}</p>
-            {taxMode && totals.taxAmt>0 && <p className="text-xs text-orange-300 mt-1">incl. tax ₹{totals.taxAmt}</p>}
+          <div className="space-y-2 pt-1">
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="text-xs text-gray-400 font-semibold">Settle in:</span>
+              <button onClick={()=>setSettleMode('cash')} className={`px-3 py-1 rounded-lg text-xs font-bold transition-all ${settleMode==='cash'?'bg-pink-500 text-white':'bg-white/10 text-gray-400'}`}>💵 Cash</button>
+              <button onClick={()=>setSettleMode('item')} className={`px-3 py-1 rounded-lg text-xs font-bold transition-all ${settleMode==='item'?'bg-purple-500 text-white':'bg-white/10 text-gray-400'}`}>🪙 Item</button>
+            </div>
+            {settleMode==='item' && (
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="text-[11px] text-gray-400 mb-1 block">Item type</label>
+                  <select className={`${inp} w-full`} value={settleType} onChange={e=>{setSettleType(e.target.value)}}>
+                    {ITEM_TYPES.map(t=><option key={t} value={t}>{t}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className="text-[11px] text-gray-400 mb-1 block">Purity %</label>
+                  <input type="number" className={`${inp} w-full`} placeholder="100" value={settlePurity} onChange={e=>setSettlePurity(e.target.value)} />
+                </div>
+              </div>
+            )}
           </div>
         )}
+
+        {/* Final total */}
+        {(soldItems.length>0||walletItems.length>0) && (
+          settleCalc ? (
+            <div className="rounded-2xl p-3 space-y-2 bg-purple-500/10 border border-purple-500/20">
+              <div className="text-center">
+                <p className="text-[11px] text-gray-400 mb-0.5">Pure balance in {settleType}</p>
+                <p className={`text-2xl font-black ${totals.netPure>=0?'text-orange-300':'text-green-300'}`}>{Math.abs(settleCalc.pureInItem)} g</p>
+                <p className="text-[10px] text-gray-500">{totals.netPure>=0?`they owe us`:`we owe them`} · {settlePurity}% pure</p>
+              </div>
+              {settleCalc.fullInItem !== null && (
+                <div className="border-t border-white/10 pt-2 text-center">
+                  <p className="text-[11px] text-gray-400 mb-0.5">Full settlement (incl. MC & cash)</p>
+                  <p className={`text-xl font-black ${totals.finalCash>=0?'text-red-300':'text-green-300'}`}>{Math.abs(settleCalc.fullInItem)} g</p>
+                  <p className="text-[10px] text-gray-500">{totals.finalCash>=0?`they owe us`:`we owe them`} {settleType}</p>
+                </div>
+              )}
+              {settleCalc.fullInItem === null && (
+                <p className="text-[10px] text-gray-600 text-center">Enter silver rate to see full settlement in {settleType}</p>
+              )}
+            </div>
+          ) : (
+            <div className={`rounded-2xl p-3 text-center ${totals.finalCash>=0?'bg-red-500/10 border border-red-500/20':'bg-green-500/10 border border-green-500/20'}`}>
+              <p className="text-xs text-gray-400 mb-1">{totals.finalCash>=0?'They owe us':'We owe them'}</p>
+              <p className={`text-2xl font-black ${totals.finalCash>=0?'text-red-300':'text-green-300'}`}>₹{Math.abs(totals.finalCash)}</p>
+              {taxMode && totals.taxAmt>0 && <p className="text-xs text-orange-300 mt-1">incl. tax ₹{totals.taxAmt}</p>}
+            </div>
+          )
+        )}
+
+        {/* Bill note */}
+        <div>
+          <label className="text-xs text-gray-400 mb-1 block">Bill Note (optional)</label>
+          <textarea className={`${inp} w-full min-h-[56px] resize-none text-sm`} placeholder="Add a note for this bill…" value={billNote} onChange={e=>setBillNote(e.target.value)} />
+        </div>
 
         <button onClick={handleBill} disabled={saving||checkoutItems.length===0}
           className="w-full py-3 rounded-2xl font-black bg-gradient-to-r from-pink-500 to-purple-500 disabled:opacity-40 disabled:cursor-not-allowed">
@@ -902,20 +995,68 @@ function BillCard({ bill, onAddPayment, onDeletePayment, onDeleteBill }) {
             <div className="flex justify-between font-black text-base pt-1 border-t border-white/10">
               <span className="text-gray-300">Final</span><span className={bill.totals.finalCash>=0?'text-red-300':'text-green-300'}>₹{Math.abs(bill.totals.finalCash)}</span>
             </div>
+            {/* Settlement info */}
+            {bill.settlement?.mode==='item' && bill.settlement.itemWeight>0 && (
+              <div className="flex justify-between mt-1 pt-1 border-t border-purple-500/30">
+                <span className="text-purple-300 font-semibold">Settlement ({bill.settlement.type} @ {bill.settlement.purity}%):</span>
+                <span className="text-purple-200 font-bold">{bill.settlement.itemWeight} g</span>
+              </div>
+            )}
           </div>
 
-          {/* Items */}
-          <div>
-            <p className="text-xs font-bold text-gray-400 mb-2">Items ({bill.items.length})</p>
-            <div className="space-y-1">
-              {bill.items.map((it,i)=>(
-                <div key={i} className="bg-black/20 rounded-lg px-3 py-2 flex justify-between text-xs">
-                  <span className="text-gray-300">{it.label}</span>
-                  <span className="text-gray-500">{it.isCash?`₹${it.cashAmt}`:`${it.wt}g @ ${it.effectivePurityPct?.toFixed(2)||0}%`}</span>
-                </div>
-              ))}
+          {/* Items We Gave */}
+          {(() => {
+            const sold = bill.items.filter(it=>['sold_barcode','sold_wt','inventory_sale','manual_sale'].includes(it.refType))
+            const recv = bill.items.filter(it=>['wallet','payment_inline'].includes(it.refType))
+            return (
+              <div className="space-y-3">
+                {sold.length>0 && (
+                  <div>
+                    <p className="text-xs font-bold text-yellow-300 mb-1.5">🏅 Items We Gave ({sold.length})</p>
+                    <div className="space-y-1">
+                      {sold.map((it,i)=>(
+                        <div key={i} className="bg-yellow-500/5 border border-yellow-500/10 rounded-lg px-3 py-2 flex justify-between text-xs">
+                          <span className="text-gray-300">{it.label}</span>
+                          <span className="text-yellow-300/70">{it.wt}g @ {it.effectivePurityPct?.toFixed(2)||0}%</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                {recv.length>0 && (
+                  <div>
+                    <p className="text-xs font-bold text-blue-300 mb-1.5">💰 Items They Gave ({recv.length})</p>
+                    <div className="space-y-1">
+                      {recv.map((it,i)=>(
+                        <div key={i} className="bg-blue-500/5 border border-blue-500/10 rounded-lg px-3 py-2 flex justify-between text-xs">
+                          <span className="text-gray-300">{it.label}</span>
+                          <span className="text-blue-300/70">{it.isCash?`₹${it.cashAmt}`:`${it.wt}g @ ${it.effectivePurityPct?.toFixed(2)||0}%`}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                {/* Settlement row */}
+                {bill.settlement?.mode==='item' && bill.settlement.itemWeight>0 && (
+                  <div>
+                    <p className="text-xs font-bold text-purple-300 mb-1.5">🔄 Settlement</p>
+                    <div className="bg-purple-500/10 border border-purple-500/20 rounded-lg px-3 py-2 flex justify-between text-xs">
+                      <span className="text-gray-300">{bill.totals.finalCash>=0?'They give us':'We give them'} — {bill.settlement.type}</span>
+                      <span className="text-purple-300 font-bold">{bill.settlement.itemWeight} g @ {bill.settlement.purity}%</span>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )
+          })()}
+
+          {/* Note */}
+          {bill.note && (
+            <div className="bg-white/5 border border-white/10 rounded-xl px-3 py-2">
+              <p className="text-[10px] text-gray-500 mb-0.5 font-bold uppercase tracking-wider">Note</p>
+              <p className="text-xs text-gray-300">{bill.note}</p>
             </div>
-          </div>
+          )}
 
           {/* Payments */}
           <div>
