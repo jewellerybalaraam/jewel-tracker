@@ -1,6 +1,7 @@
 import XLSX from 'xlsx'
 import fs   from 'fs'
 import Inventory from '../models/Inventory.js'
+import Lot from '../models/Lot.js'
 
 
 // ── helpers ────────────────────────────────────────────────────────────────
@@ -11,8 +12,6 @@ const parseSize = (raw) => {
   if (raw === undefined || raw === null || raw === '') return ''
   if (raw instanceof Date) return ''
   const s = String(raw).trim()
-  // xlsx serial dates land here as numbers when cellDates:false — skip them
-  // if the value looks like a large integer (Excel date serial > 40000)
   if (/^\d{5,}$/.test(s)) return ''
   return s
 }
@@ -23,6 +22,19 @@ const parseDate = (raw) => {
   if (raw instanceof Date && !isNaN(raw)) return raw
   const d = new Date(raw)
   return isNaN(d) ? null : d
+}
+
+const recomputeLotProgress = async (lotNumber) => {
+  if (!lotNumber) return
+  const lot = await Lot.findOne({ lotNumber })
+  if (!lot) return
+  const items = await Inventory.find({ lotNumber })
+  for (const p of lot.products) {
+    const matched = items.filter(i => i.productKey === p.productKey)
+    p.itemsAddedCount  = matched.length
+    p.itemsAddedWeight = Number(matched.reduce((s, i) => s + (i.netWt || 0), 0).toFixed(3))
+  }
+  await lot.save()
 }
 
 
@@ -45,8 +57,6 @@ export const uploadInventory = async (req, res) => {
 
     const sheetName = workbook.SheetNames[0]
 
-    // range: 2 → row index 2 is the header row
-    // (rows 0–1 are blank; row 2 = RECDATE TIME ITEMTAG PROID …)
     const rows = XLSX.utils.sheet_to_json(
       workbook.Sheets[sheetName],
       { range: 2, defval: '' }
@@ -59,10 +69,8 @@ export const uploadInventory = async (req, res) => {
 
       const barcode = String(row['ITEMTAG'] || '').trim()
 
-      // Skip header-echo rows or empty rows
       if (!barcode || barcode === 'ITEMTAG') { skippedCount++; continue }
 
-      // Skip duplicates
       const exists = await Inventory.findOne({ barcode })
       if (exists) { skippedCount++; continue }
 
@@ -131,12 +139,72 @@ export const getInventoryByBarcode = async (req, res) => {
         makingCharge:   item.makingCharge,
         pureRate:       item.pureRate,
         purity:         item.purity,
-        status:         item.status
+        status:         item.status,
+        lotNumber:      item.lotNumber,
+        prefix:         item.prefix,
+        serialNo:       item.serialNo,
+        supplierName:   item.supplierName,
       }
     })
 
   } catch (error) {
     console.log(error)
+    res.status(500).json({ success: false, message: error.message })
+  }
+}
+
+// =====================================
+// LIST INVENTORY by LOT
+// =====================================
+
+export const listInventoryByLot = async (req, res) => {
+  try {
+    const lotNumber = Number(req.params.lotNumber)
+    const items = await Inventory.find({ lotNumber }).sort({ prefix: 1, serialNo: 1 })
+    res.json({ success: true, data: items })
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message })
+  }
+}
+
+// =====================================
+// UPDATE one inventory item (reversible edit)
+// =====================================
+
+export const updateInventoryItem = async (req, res) => {
+  try {
+    const id = req.params.id
+    const allowed = ['netWt','size','purity','makingCharge','pureRate','productName','subProductName','status']
+    const updates = {}
+    for (const k of allowed) {
+      if (req.body[k] !== undefined) updates[k] = req.body[k]
+    }
+    const before = await Inventory.findById(id)
+    if (!before) return res.status(404).json({ success: false, message: 'Item not found' })
+
+    const updated = await Inventory.findByIdAndUpdate(id, updates, { new: true })
+    await recomputeLotProgress(updated.lotNumber)
+
+    res.json({ success: true, data: updated })
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message })
+  }
+}
+
+// =====================================
+// DELETE one inventory item (reversible)
+// =====================================
+
+export const deleteInventoryItem = async (req, res) => {
+  try {
+    const id = req.params.id
+    const item = await Inventory.findById(id)
+    if (!item) return res.status(404).json({ success: false, message: 'Item not found' })
+    const lotNumber = item.lotNumber
+    await Inventory.findByIdAndDelete(id)
+    await recomputeLotProgress(lotNumber)
+    res.json({ success: true })
+  } catch (error) {
     res.status(500).json({ success: false, message: error.message })
   }
 }

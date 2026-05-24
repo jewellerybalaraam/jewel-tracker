@@ -68,7 +68,14 @@ const inventorySchema = new mongoose.Schema(
       type:    String,
       enum:    ['AVAILABLE', 'SOLD'],
       default: 'AVAILABLE'
-    }
+    },
+
+    // ── LOT linkage (new) ─────────────────────────────────────
+    lotNumber:    { type: Number, default: null, index: true }, // 123
+    productKey:   { type: String, default: '' },                // links to Lot.products[].productKey
+    serialNo:     { type: Number, default: 0 },                 // 119 (s.no in ABC of LOT 123)
+    prefix:       { type: String, default: '' },                // ABC
+    supplierName: { type: String, default: '' },
   },
   { timestamps: true }
 )

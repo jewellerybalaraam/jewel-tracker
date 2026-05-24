@@ -9,6 +9,8 @@ import {
   FaBoxOpen,
   FaUsers,
   FaTag,
+  FaClipboardList,
+  FaRulerCombined,
 } from "react-icons/fa";
 
 import {
@@ -32,6 +34,8 @@ function Sidebar() {
     { name: "Barcode Search",   path: "/barcode-search",    icon: <FaSearch /> },
     { name: "Inventory Search", path: "/inventory-search",  icon: <FaTag /> },
     { name: "Customer History", path: "/customer-history",  icon: <FaHistory /> },
+    { name: "Inventory Entry",  path: "/inventory-entry",   icon: <FaClipboardList /> },
+    { name: "Bulk Stock",       path: "/bulk-stock",        icon: <FaRulerCombined /> },
     { name: "Upload Inventory", path: "/upload-inventory",  icon: <FaBoxOpen /> },
     { name: "Clients",          path: "/clients",           icon: <FaUsers /> },
     { name: "Pending",          path: "/pending-clients",   icon: <FaExchangeAlt /> },

@@ -10,7 +10,7 @@ const productSchema = new mongoose.Schema(
 
     prefix: {
       type: String,
-      required: true
+      required: true        // e.g. "ABC" — appears in the barcode
     },
 
     productName: {
@@ -19,17 +19,31 @@ const productSchema = new mongoose.Schema(
     },
 
     subProductName: {
-      type: String
+      type: String,
+      default: ''
     },
 
     purity: {
       type: Number,
       default: 92.5
+    },
+
+    // Bulk / length-based goods (silver rope etc.) — not tagged per piece
+    isBulk: {
+      type: Boolean,
+      default: false
+    },
+
+    unit: {
+      type: String,
+      default: 'pcs'        // "pcs" | "m" | "ft" | "inch" | "g"
     }
   },
   {
     timestamps: true
   }
 )
+
+productSchema.index({ productName: 'text', subProductName: 'text', prefix: 'text' })
 
 export default mongoose.model('Product', productSchema)

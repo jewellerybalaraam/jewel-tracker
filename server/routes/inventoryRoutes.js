@@ -6,31 +6,25 @@ import upload from '../middleware/upload.js'
 
 import {
   uploadInventory,
-  getInventoryByBarcode
+  getInventoryByBarcode,
+  listInventoryByLot,
+  updateInventoryItem,
+  deleteInventoryItem,
 } from '../controllers/inventoryController.js'
 
 const router = express.Router()
 
+// upload excel
+router.post('/upload', upload.single('file'), uploadInventory)
 
-// =====================================
-// UPLOAD INVENTORY EXCEL
-// =====================================
+// get by barcode
+router.get('/barcode/:barcode', getInventoryByBarcode)
 
-router.post(
-  '/upload',
-  upload.single('file'),
-  uploadInventory
-)
+// list by LOT
+router.get('/by-lot/:lotNumber', listInventoryByLot)
 
-
-// =====================================
-// GET INVENTORY USING BARCODE
-// =====================================
-
-router.get(
-  '/barcode/:barcode',
-  getInventoryByBarcode
-)
-
+// edit / delete single item (reversible)
+router.put('/:id',    updateInventoryItem)
+router.delete('/:id', deleteInventoryItem)
 
 export default router

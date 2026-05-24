@@ -19,6 +19,9 @@ import ClientPage from './pages/ClientPage'
 import ReportPage from "./pages/Reportpage";
 import UserManagement from './pages/UserManagement'
 
+import InventoryEntry from './pages/InventoryEntry'
+import BulkStock from './pages/BulkStock'
+
 function ProtectedRoute({ children }) {
   const { isLoggedIn } = useAuth()
   return isLoggedIn ? children : <Navigate to="/login" replace />
@@ -45,6 +48,8 @@ function App() {
           <Route path="barcode-search" element={<BarcodeSearch />} />
           <Route path="customer-history" element={<CustomerHistory />} />
           <Route path="upload-inventory" element={<UploadInventory />} />
+          <Route path="inventory-entry" element={<InventoryEntry />} />
+          <Route path="bulk-stock" element={<BulkStock />} />
           <Route path="inventory-search" element={<InventorySearch />} />
           <Route path="clients" element={<Clients />} />
           <Route path="pending-clients" element={<PendingClients />} />
