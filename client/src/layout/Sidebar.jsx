@@ -142,7 +142,7 @@ export default function Sidebar({ collapsed, setCollapsed }) {
         hidden md:flex flex-col
         ${collapsed ? "w-[68px]" : "w-[260px]"}
       `}
-      style={{ minHeight: "100vh" }}
+      style={{ height: "100%" }}
     >
       {/* Header */}
       <div className={`flex items-center border-b border-white/10 h-16 px-3 gap-2 flex-shrink-0 ${collapsed ? "justify-center" : "justify-between"}`}>

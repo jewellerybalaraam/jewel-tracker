@@ -8,7 +8,7 @@ function MainLayout() {
   });
 
   return (
-    <div className="min-h-screen bg-[#0f0f14] text-white overflow-x-hidden">
+    <div className="h-screen bg-[#0f0f14] text-white overflow-hidden flex flex-col">
 
       {/* BACKGROUND */}
       <div className="fixed inset-0 -z-10 overflow-hidden">
@@ -17,21 +17,26 @@ function MainLayout() {
         <div className="absolute bottom-[-100px] left-[20%] w-[400px] h-[400px] bg-purple-600 opacity-20 blur-[140px] rounded-full" />
       </div>
 
-      {/* Mobile top bar + drawer */}
+      {/* Mobile top bar */}
       <MobileNav />
 
-      {/* Desktop layout */}
-      <div className="hidden md:flex min-h-screen">
+      {/* Desktop: sidebar + content, both filling remaining height */}
+      <div className="hidden md:flex flex-1 min-h-0">
+
+        {/* Sidebar scrolls independently */}
         <Sidebar collapsed={collapsed} setCollapsed={setCollapsed} />
-        <div className="flex-1 p-4 md:p-6 overflow-x-hidden transition-all duration-300">
+
+        {/* Main content scrolls independently */}
+        <div className="flex-1 overflow-y-auto overflow-x-hidden p-4 md:p-6 transition-all duration-300">
           <div className="backdrop-blur-xl bg-white/5 border border-white/10 rounded-3xl overflow-hidden">
             <Outlet />
           </div>
         </div>
+
       </div>
 
       {/* Mobile content */}
-      <div className="md:hidden p-3">
+      <div className="md:hidden flex-1 overflow-y-auto overflow-x-hidden p-3">
         <div className="backdrop-blur-xl bg-white/5 border border-white/10 rounded-3xl overflow-hidden">
           <Outlet />
         </div>
