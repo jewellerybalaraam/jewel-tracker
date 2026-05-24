@@ -11,6 +11,7 @@ import {
   FaTag,
   FaClipboardList,
   FaRulerCombined,
+  FaFileInvoiceDollar,
 } from "react-icons/fa";
 
 import {
@@ -27,6 +28,7 @@ function Sidebar() {
   const menus = [
     { name: "Dashboard",        path: "/",                  icon: <FaChartPie /> },
     { name: "New Transaction",  path: "/new",               icon: <FaPlusCircle /> },
+    { name: "Direct Billing",   path: "/direct-billing",    icon: <FaFileInvoiceDollar /> },
     { name: "Transactions",     path: "/transactions",      icon: <FaExchangeAlt /> },
     { name: "Sold",             path: "/sold",              icon: <FaExchangeAlt /> },
     { name: "Pending List",     path: "/pending-list",      icon: <FaUsers /> },

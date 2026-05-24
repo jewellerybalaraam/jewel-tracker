@@ -1,6 +1,7 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState, useRef } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import axios from 'axios'
+import BarcodeScanner from '../components/BarcodeScanner'
 
 const API = import.meta.env.VITE_API_URL
 
@@ -285,7 +286,125 @@ function TabSearchBar({ search, setSearch, fromDate, setFromDate, toDate, setToD
   )
 }
 
-function StatusTab({ allRows, status, tab, onUpdate, checkoutSet, toggleCheckout }) {
+// ── QuickScanPanel ─ scan-driven status change for Pending tab ──
+function QuickScanPanel({ pendingRows, onBulk, onMarkAll }) {
+  const [open, setOpen]       = useState(false)
+  const [mode, setMode]       = useState('RETURNED')         // RETURNED or SOLD
+  const [scanning, setScanning] = useState(false)
+  const [feed, setFeed]       = useState([])                 // recent scan log
+  const [manual, setManual]   = useState('')
+  const lastScanRef = useRef({ code: '', at: 0 })
+
+  // index pending barcode rows by barcode
+  const barcodeMap = useMemo(() => {
+    const m = {}
+    pendingRows.forEach(r => { if (r.kind === 'barcode' && r.barcode && !r.billId) m[r.barcode] = r })
+    return m
+  }, [pendingRows])
+
+  const pushFeed = (entry) =>
+    setFeed(f => [{ ...entry, at: new Date() }, ...f].slice(0, 20))
+
+  const handleScan = async (raw) => {
+    const code = String(raw||'').trim()
+    if (!code) return
+    // de-dupe: ignore same code within 2.5s
+    const now = Date.now()
+    if (lastScanRef.current.code === code && now - lastScanRef.current.at < 2500) return
+    lastScanRef.current = { code, at: now }
+
+    const row = barcodeMap[code]
+    if (!row) {
+      pushFeed({ code, status: 'NOT FOUND', ok: false })
+      try { navigator.vibrate?.([60,40,60]) } catch{}
+      return
+    }
+    try {
+      await onBulk([{ kind:'barcode', eerettuId: row.eerettuId, barcode: row.barcode, status: mode }])
+      pushFeed({ code, status: mode, ok: true, label: row.productName })
+      try { navigator.vibrate?.(40) } catch{}
+    } catch (e) {
+      pushFeed({ code, status: 'ERROR', ok: false })
+    }
+  }
+
+  const submitManual = () => {
+    if (!manual.trim()) return
+    handleScan(manual.trim())
+    setManual('')
+  }
+
+  const pendingBarcodes = Object.keys(barcodeMap).length
+
+  return (
+    <div className="bg-gradient-to-br from-purple-500/10 to-pink-500/10 border border-pink-500/20 rounded-2xl p-3 mb-3">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <div className="flex items-center gap-2">
+          <span className="text-pink-300 font-black text-sm">⚡ Quick Mode</span>
+          <span className="text-xs text-gray-400">{pendingBarcodes} barcode item(s) pending</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <div className="flex rounded-xl overflow-hidden border border-white/10">
+            <button onClick={()=>setMode('RETURNED')}
+              className={`px-3 py-1.5 text-xs font-bold ${mode==='RETURNED'?'bg-green-500 text-white':'bg-white/5 text-gray-400'}`}>Returned</button>
+            <button onClick={()=>setMode('SOLD')}
+              className={`px-3 py-1.5 text-xs font-bold ${mode==='SOLD'?'bg-red-500 text-white':'bg-white/5 text-gray-400'}`}>Sold</button>
+          </div>
+          <button onClick={()=>setOpen(o=>!o)} className="text-xs px-3 py-1.5 rounded-xl bg-pink-500 text-white font-bold">
+            {open?'Close':'Open'}
+          </button>
+        </div>
+      </div>
+
+      {open && (
+        <div className="mt-3 space-y-3">
+          <div className="flex gap-2">
+            <button onClick={()=>setScanning(s=>!s)}
+              className="flex-1 py-2 rounded-xl bg-gradient-to-r from-pink-500 to-purple-500 text-sm font-bold">
+              {scanning?'⏹ Stop Camera':'📷 Scan with Camera'}
+            </button>
+            <button
+              onClick={()=>{
+                if (!pendingBarcodes) return
+                if (!window.confirm(`Mark ALL ${pendingBarcodes} pending barcode item(s) as ${mode}?`)) return
+                onMarkAll(mode)
+              }}
+              className="px-4 py-2 rounded-xl bg-orange-500 text-white text-sm font-bold">
+              Mark All {mode==='RETURNED'?'Returned':'Sold'}
+            </button>
+          </div>
+
+          {scanning && <BarcodeScanner onScan={handleScan} />}
+
+          <div className="flex gap-2">
+            <input
+              autoFocus
+              value={manual}
+              onChange={e=>setManual(e.target.value)}
+              onKeyDown={e=>{ if(e.key==='Enter') submitManual() }}
+              placeholder="Or type / scan barcode then press Enter"
+              className="flex-1 p-2.5 rounded-xl bg-white/10 border border-white/10 outline-none focus:border-pink-400 text-white text-sm" />
+            <button onClick={submitManual} className="px-4 py-2 rounded-xl bg-pink-500 text-white text-sm font-bold">Apply</button>
+          </div>
+
+          {feed.length>0 && (
+            <div className="max-h-48 overflow-auto space-y-1">
+              {feed.map((f,i)=>(
+                <div key={i} className={`flex items-center justify-between text-xs px-3 py-1.5 rounded-lg ${f.ok?'bg-green-500/10 border border-green-500/20':'bg-red-500/10 border border-red-500/20'}`}>
+                  <span className={`font-bold ${f.ok?'text-green-300':'text-red-300'}`}>{f.code}</span>
+                  <span className="text-gray-400 text-[10px]">{f.label||''}</span>
+                  <span className={`font-bold ${f.ok?'text-green-300':'text-red-300'}`}>{f.status}</span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
+
+function StatusTab({ allRows, status, tab, onUpdate, onBulk, checkoutSet, toggleCheckout }) {
   const [search, setSearch] = useState('')
   const [fromDate, setFromDate] = useState('')
   const [toDate,   setToDate]   = useState('')
@@ -307,8 +426,19 @@ function StatusTab({ allRows, status, tab, onUpdate, checkoutSet, toggleCheckout
     })
   }, [rows, search, fromDate, toDate, sortBy, tab])
   const groups = useMemo(() => groupRowsForTab(filtered), [filtered])
+
+  const markAllPending = async (mode) => {
+    const updates = rows.filter(r => r.kind==='barcode' && !r.billId).map(r => ({
+      kind:'barcode', eerettuId: r.eerettuId, barcode: r.barcode, status: mode,
+    }))
+    if (updates.length) await onBulk(updates)
+  }
+
   return (
     <div>
+      {tab==='pending' && (
+        <QuickScanPanel pendingRows={rows} onBulk={onBulk} onMarkAll={markAllPending} />
+      )}
       <TabSearchBar search={search} setSearch={setSearch} fromDate={fromDate} setFromDate={setFromDate} toDate={toDate} setToDate={setToDate} sortBy={sortBy} setSortBy={setSortBy} />
       <div className="space-y-3">
         {groups.length===0 && <p className="text-center py-8 text-gray-500 text-sm">No items</p>}
@@ -734,10 +864,17 @@ function BillCard({ bill, onAddPayment, onDeletePayment, onDeleteBill }) {
       <div className="p-4 flex items-start justify-between gap-3 cursor-pointer" onClick={()=>setExpanded(e=>!e)}>
         <div className="flex-1">
           <div className="flex items-center gap-2 flex-wrap">
+            {bill.billNumber && <span className="text-xs bg-pink-500/20 text-pink-200 px-2 py-0.5 rounded-lg font-black tracking-wider">#{bill.billNumber}</span>}
             <span className="font-black text-white">{fmtDateTime(bill.createdAt)}</span>
+            {bill.billType && bill.billType!=='client' && (
+              <span className={`text-xs px-2 py-0.5 rounded-lg font-bold ${bill.billType==='purchase'?'bg-blue-500/20 text-blue-300':'bg-purple-500/20 text-purple-300'}`}>
+                {bill.billType==='purchase'?'Purchase':'Direct Sale'}
+              </span>
+            )}
             {isTax && <span className="text-xs bg-orange-500/20 text-orange-300 px-2 py-0.5 rounded-lg">Tax</span>}
             {bill.status==='paid' && <span className="text-xs bg-green-500/20 text-green-300 px-2 py-0.5 rounded-lg font-bold">✓ Paid</span>}
           </div>
+          {bill.customerMobile && <p className="text-xs text-gray-500 mt-1">📞 {bill.customerMobile}</p>}
           <div className="flex flex-wrap gap-3 mt-1 text-sm">
             <span className="text-gray-400">Total: <strong className="text-white">₹{bill.totals.finalCash}</strong></span>
             <span className="text-gray-400">Paid: <strong className="text-green-300">₹{n2(paid)}</strong></span>
@@ -911,6 +1048,13 @@ export default function ClientPage() {
     } catch (e) { console.log(e); alert('Update failed') }
   }
 
+  const onBulkUpdate = async (updates) => {
+    try {
+      await axios.post(`${API}/api/eerettu/bulk-status`, { updates })
+      await fetchAll()
+    } catch (e) { console.log(e); alert('Bulk update failed') }
+  }
+
   const addWallet    = async (p)    => { await axios.post(`${API}/api/wallet`, { clientName, ...p }); fetchAll() }
   const updateWallet = async (id,p) => { await axios.patch(`${API}/api/wallet/${id}`, p); fetchAll() }
   const deleteWallet = async (id)   => { if(!window.confirm('Delete wallet entry?')) return; await axios.delete(`${API}/api/wallet/${id}`); fetchAll() }
@@ -960,9 +1104,9 @@ export default function ClientPage() {
             {tabBtn('bills',`Bills${bills.filter(b=>b.status==='unpaid').length>0?` (${bills.filter(b=>b.status==='unpaid').length})`:''}`)}
           </div>
 
-          {tab==='pending' && <StatusTab allRows={allRows} status="PENDING" tab="pending" onUpdate={onUpdateRow} checkoutSet={checkoutSet} toggleCheckout={toggleCheckout} />}
-          {tab==='returned' && <StatusTab allRows={allRows} status="RETURNED" tab="returned" onUpdate={onUpdateRow} checkoutSet={checkoutSet} toggleCheckout={toggleCheckout} />}
-          {tab==='sold' && <StatusTab allRows={allRows} status="SOLD" tab="sold" onUpdate={onUpdateRow} checkoutSet={checkoutSet} toggleCheckout={toggleCheckout} />}
+          {tab==='pending' && <StatusTab allRows={allRows} status="PENDING" tab="pending" onUpdate={onUpdateRow} onBulk={onBulkUpdate} checkoutSet={checkoutSet} toggleCheckout={toggleCheckout} />}
+          {tab==='returned' && <StatusTab allRows={allRows} status="RETURNED" tab="returned" onUpdate={onUpdateRow} onBulk={onBulkUpdate} checkoutSet={checkoutSet} toggleCheckout={toggleCheckout} />}
+          {tab==='sold' && <StatusTab allRows={allRows} status="SOLD" tab="sold" onUpdate={onUpdateRow} onBulk={onBulkUpdate} checkoutSet={checkoutSet} toggleCheckout={toggleCheckout} />}
           {tab==='wallet' && <WalletTab entries={walletEntries} onAdd={addWallet} onUpdate={updateWallet} onDelete={deleteWallet} checkoutSet={checkoutSet} toggleCheckout={toggleCheckout} />}
           {tab==='bills' && <BillsTab bills={bills} onAddPayment={addPayment} onDeletePayment={deletePayment} onDeleteBill={deleteBill} />}
         </div>

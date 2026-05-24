@@ -21,6 +21,7 @@ import UserManagement from './pages/UserManagement'
 
 import InventoryEntry from './pages/InventoryEntry'
 import BulkStock from './pages/BulkStock'
+import DirectBilling from './pages/DirectBilling'
 
 function ProtectedRoute({ children }) {
   const { isLoggedIn } = useAuth()
@@ -59,6 +60,7 @@ function App() {
           <Route path="client/:clientName" element={<ClientPage />} />
           <Route path="reports" element={<ReportPage />} />
           <Route path="users" element={<UserManagement />} />
+          <Route path="direct-billing" element={<DirectBilling />} />
         </Route>
 
         <Route path="*" element={<Navigate to="/" replace />} />

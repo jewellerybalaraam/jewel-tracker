@@ -206,6 +206,91 @@ export const updateWtStatus = async (req, res) => {
 }
 
 // ─────────────────────────────────────────────────────────
+// BULK STATUS UPDATE — used by Quick-Scan / Mark-All
+// body: {
+//   updates: [
+//     { kind: 'barcode'|'wt', eerettuId, barcode?, status:'RETURNED'|'SOLD',
+//       soldAt?, returnedAt?, pureDue?, cashDue?, billBookNo?, billPageNo?,
+//       returnedPcs?, returnedWt? }
+//   ]
+// }
+// ─────────────────────────────────────────────────────────
+export const bulkUpdateStatus = async (req, res) => {
+  try {
+    const { updates = [] } = req.body
+    const results = { updated: 0, skipped: 0, errors: [] }
+    // group by eerettuId so we only load & save each doc once
+    const byId = new Map()
+    updates.forEach(u => {
+      if (!u.eerettuId) { results.skipped++; return }
+      if (!byId.has(u.eerettuId)) byId.set(u.eerettuId, [])
+      byId.get(u.eerettuId).push(u)
+    })
+    for (const [id, list] of byId.entries()) {
+      const e = await Eerettu.findById(id)
+      if (!e) { results.skipped += list.length; results.errors.push(`Eerettu ${id} not found`); continue }
+      for (const u of list) {
+        const status = u.status
+        if (u.kind === 'barcode') {
+          const item = e.items.find(i => i.barcode === u.barcode)
+          if (!item) { results.skipped++; continue }
+          if (item.billId) { results.skipped++; continue }   // locked
+          item.status = status
+          if (status === 'SOLD') {
+            item.soldAt     = u.soldAt ? new Date(u.soldAt) : new Date()
+            item.returnedAt = null
+            if (u.pureDue   !== undefined) item.pureDue   = parseFloat(u.pureDue)||0
+            if (u.cashDue   !== undefined) item.cashDue   = parseFloat(u.cashDue)||0
+            if (u.billBookNo!== undefined) item.billBookNo= u.billBookNo
+            if (u.billPageNo!== undefined) item.billPageNo= u.billPageNo
+          } else if (status === 'RETURNED') {
+            item.returnedAt = u.returnedAt ? new Date(u.returnedAt) : new Date()
+            item.soldAt     = null
+            item.billBookNo = ''
+            item.billPageNo = ''
+          }
+          results.updated++
+        } else if (u.kind === 'wt') {
+          const wt = e.wtMode
+          if (!wt) { results.skipped++; continue }
+          if (wt.billId) { results.skipped++; continue }
+          wt.status = status
+          if (status === 'SOLD') {
+            const retPcs = (u.returnedPcs!==undefined && u.returnedPcs!=='') ? parseFloat(u.returnedPcs)||0 : 0
+            const retWt  = (u.returnedWt !==undefined && u.returnedWt !=='') ? parseFloat(u.returnedWt) ||0 : 0
+            wt.returnedPcs = retPcs
+            wt.returnedWt  = retWt
+            wt.soldPcs     = (wt.totalPcs||0) - retPcs
+            wt.soldWt      = parseFloat(((wt.totalWt||0) - retWt).toFixed(3))
+            wt.soldAt      = u.soldAt ? new Date(u.soldAt) : new Date()
+            wt.returnedAt  = null
+            if (u.pureDue   !== undefined) wt.pureDue   = parseFloat(u.pureDue)||0
+            if (u.cashDue   !== undefined) wt.cashDue   = parseFloat(u.cashDue)||0
+          } else if (status === 'RETURNED') {
+            wt.returnedPcs = wt.totalPcs || 0
+            wt.returnedWt  = wt.totalWt  || 0
+            wt.soldPcs     = 0
+            wt.soldWt      = 0
+            wt.returnedAt  = u.returnedAt ? new Date(u.returnedAt) : new Date()
+            wt.soldAt      = null
+            wt.billBookNo  = ''
+            wt.billPageNo  = ''
+          }
+          results.updated++
+        } else {
+          results.skipped++
+        }
+      }
+      await e.save()
+    }
+    res.json(results)
+  } catch (error) {
+    console.log(error)
+    res.status(500).json({ message: error.message })
+  }
+}
+
+// ─────────────────────────────────────────────────────────
 // AGGREGATE: list of clients with pending counts
 // ─────────────────────────────────────────────────────────
 export const getPendingClientsList = async (_req, res) => {
