@@ -132,6 +132,27 @@ export const createLot = async (req, res) => {
       bulkUnit:       p.bulkUnit || 'm',
     }))
 
+    // Auto-sync product catalog so autocomplete always has data
+    for (const p of products_) {
+      if (!p.productName || !p.prefix) continue
+      const exists = await Product.findOne({
+        productName:    p.productName.trim(),
+        subProductName: (p.subProductName || '').trim(),
+      })
+      if (!exists) {
+        const last = await Product.findOne({}).sort({ productId: -1 })
+        await Product.create({
+          productId:      (last?.productId || 100) + 1,
+          prefix:         p.prefix.trim().toUpperCase(),
+          productName:    p.productName.trim(),
+          subProductName: (p.subProductName || '').trim(),
+          purity:         Number(p.purity) || 92.5,
+          isBulk:         !!p.isBulk,
+          unit:           p.isBulk ? (p.bulkUnit || 'm') : 'pcs',
+        })
+      }
+    }
+
     const lot = await Lot.create({
       lotNumber,
       receivedDate: receivedDate ? new Date(receivedDate) : new Date(),

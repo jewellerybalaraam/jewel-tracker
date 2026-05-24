@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import axios from 'axios'
 import { useNavigate } from 'react-router-dom'
 import toast, { Toaster } from 'react-hot-toast'
@@ -148,10 +148,15 @@ export default function InventoryEntry() {
     const { data } = await axios.get(`${API}/api/suppliers`, { params: { q } })
     return data.data || []
   }
-  const productFetcher = (field) => async (q) => {
-    const { data } = await axios.get(`${API}/api/products/search`, { params: { q, field } })
-    return data.data || []
-  }
+  
+const fetchProductsByName = useCallback(async (q) => {
+  const { data } = await axios.get(`${API}/api/products/search`, { params: { q, field: 'productName' } })
+  return data.data || []
+}, [])
+const fetchProductsBySub = useCallback(async (q) => {
+  const { data } = await axios.get(`${API}/api/products/search`, { params: { q, field: 'subProductName' } })
+  return data.data || []
+}, [])
   const fetchPurities = async (q) => {
     const { data } = await axios.get(`${API}/api/products/search`, { params: { q: '', field: 'productName' } })
     const set = new Set((data.data || []).map(p => String(p.purity)))
@@ -794,7 +799,7 @@ function ProductRow({
           <Autocomplete
             value={row.productName}
             onChange={(v) => onChange({ productName: v, prefix: '', productId: 0 })}
-            fetcher={productFetcher('productName')}
+            fetcher={fetchProductsByName}
             getLabel={(o) => o.productName}
             onPick={(o) => onChange({
               productName: o.productName,
@@ -814,7 +819,7 @@ function ProductRow({
           <Autocomplete
             value={row.subProductName}
             onChange={(v) => onChange({ subProductName: v })}
-            fetcher={productFetcher('subProductName')}
+            fetcher={fetchProductsBySub}
             getLabel={(o) => o.subProductName || o.productName}
             onPick={(o) => onChange({ subProductName: o.subProductName || '' })}
             placeholder="type sub-product…"
