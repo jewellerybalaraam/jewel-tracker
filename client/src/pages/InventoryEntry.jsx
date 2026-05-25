@@ -438,8 +438,7 @@ export default function InventoryEntry() {
                 onChange={(patch) => setRow(idx, patch)}
                 onRemove={() => removeRow(idx)}
                 fetchSuppliers={fetchSuppliers}
-                fetchProductsByName={fetchProductsByName}
-                fetchProductsBySub={fetchProductsBySub}
+                productFetcher={productFetcher}
                 fetchPurities={fetchPurities}
                 openSupplierModal={(name) => setSupplierModal({ rowIdx: idx, initialName: name })}
                 openProductModal={(name) => setProductModal({ rowIdx: idx, initialName: name })}
@@ -773,7 +772,7 @@ function StepDot({ active, done, index, label }) {
 
 function ProductRow({
   idx, row, onChange, onRemove,
-  fetchSuppliers, fetchProductsByName, fetchProductsBySub, fetchPurities,
+  fetchSuppliers, productFetcher, fetchPurities,
   openSupplierModal, openProductModal,
 }) {
   return (

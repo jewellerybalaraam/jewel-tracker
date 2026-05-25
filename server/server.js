@@ -10,6 +10,7 @@ import eerettuRoutes   from './routes/eerettuRoutes.js'
 import walletRoutes    from './routes/walletRoutes.js'
 import billRoutes      from './routes/billRoutes.js'
 
+import transactionRoutes from './routes/transactionRoutes.js'
 import lotRoutes       from './routes/lotRoutes.js'
 import supplierRoutes  from './routes/supplierRoutes.js'
 import productRoutes   from './routes/productRoutes.js'
@@ -31,6 +32,7 @@ app.use('/api/wallet',     walletRoutes)
 app.use('/api/bills',      billRoutes)
 
 // ── Inventory Entry feature ──────────────────────────────
+app.use('/api/transactions',  transactionRoutes)
 app.use('/api/lots',         lotRoutes)
 app.use('/api/suppliers',    supplierRoutes)
 app.use('/api/products',     productRoutes)
