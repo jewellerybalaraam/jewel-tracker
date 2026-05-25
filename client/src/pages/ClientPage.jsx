@@ -632,6 +632,8 @@ function BillingPanel({ checkoutItems, removeItem, clientName, onBillCreated }) 
   const [settleMode, setSettleMode] = useState('cash')  // 'cash' | 'item'
   const [settleType, setSettleType] = useState('london bar')
   const [settlePurity, setSettlePurity] = useState('100')
+  const [settleWastePct, setSettleWastePct] = useState('')
+  const [settleWasteSign, setSettleWasteSign] = useState('+')
   // note
   const [billNote, setBillNote] = useState('')
 
@@ -700,11 +702,15 @@ function BillingPanel({ checkoutItems, removeItem, clientName, onBillCreated }) 
     const pPct = parseFloat(settlePurity) || 0
     if (pPct <= 0) return null
     const frac = pPct / 100
-    const pureInItem = n2(totals.netPure / frac)
+    const wPct = parseFloat(settleWastePct) || 0
+    const wasteMult = settleWasteSign === '+' ? (1 + wPct / 100) : (1 - wPct / 100)
+    const base = totals.netPure / frac
+    const pureInItem = n2(base * wasteMult)
     const rate = parseFloat(silverRate) || 0
-    const fullInItem = rate > 0 ? n2(totals.finalCash / (rate * frac)) : null
-    return { pureInItem, fullInItem }
-  }, [settleMode, settlePurity, totals, silverRate])
+    const fullBase = rate > 0 ? totals.finalCash / (rate * frac) : null
+    const fullInItem = fullBase !== null ? n2(fullBase * wasteMult) : null
+    return { pureInItem, fullInItem, base: n2(base), wPct, wasteSign: settleWasteSign }
+  }, [settleMode, settlePurity, settleWastePct, settleWasteSign, totals, silverRate])
 
   const handleBill = async () => {
     if (!checkoutItems.length) return alert('No items in checkout')
@@ -861,16 +867,30 @@ function BillingPanel({ checkoutItems, removeItem, clientName, onBillCreated }) 
               <button onClick={()=>setSettleMode('item')} className={`px-3 py-1 rounded-lg text-xs font-bold transition-all ${settleMode==='item'?'bg-purple-500 text-white':'bg-white/10 text-gray-400'}`}>🪙 Item</button>
             </div>
             {settleMode==='item' && (
-              <div className="grid grid-cols-2 gap-2">
-                <div>
-                  <label className="text-[11px] text-gray-400 mb-1 block">Item type</label>
-                  <select className={`${inp} w-full`} value={settleType} onChange={e=>{setSettleType(e.target.value)}}>
-                    {ITEM_TYPES.map(t=><option key={t} value={t}>{t}</option>)}
-                  </select>
+              <div className="space-y-2">
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <label className="text-[11px] text-gray-400 mb-1 block">Item type</label>
+                    <select className={`${inp} w-full`} value={settleType} onChange={e=>{setSettleType(e.target.value)}}>
+                      {ITEM_TYPES.map(t=><option key={t} value={t}>{t}</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="text-[11px] text-gray-400 mb-1 block">Purity %</label>
+                    <input type="number" className={`${inp} w-full`} placeholder="100" value={settlePurity} onChange={e=>setSettlePurity(e.target.value)} />
+                  </div>
                 </div>
-                <div>
-                  <label className="text-[11px] text-gray-400 mb-1 block">Purity %</label>
-                  <input type="number" className={`${inp} w-full`} placeholder="100" value={settlePurity} onChange={e=>setSettlePurity(e.target.value)} />
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <label className="text-[11px] text-gray-400 mb-1 block">Wastage %</label>
+                    <div className="flex gap-1">
+                      <button
+                        onClick={()=>setSettleWasteSign(s=>s==='+'?'-':'+')}
+                        className={`px-2.5 rounded-lg text-xs font-bold ${settleWasteSign==='+'?'bg-green-500/30 text-green-300':'bg-red-500/30 text-red-300'}`}
+                      >{settleWasteSign}</button>
+                      <input type="number" className={`${inp} flex-1 min-w-0`} placeholder="0" value={settleWastePct} onChange={e=>setSettleWastePct(e.target.value)} />
+                    </div>
+                  </div>
                 </div>
               </div>
             )}
@@ -885,6 +905,11 @@ function BillingPanel({ checkoutItems, removeItem, clientName, onBillCreated }) 
                 <p className="text-[11px] text-gray-400 mb-0.5">Pure balance in {settleType}</p>
                 <p className={`text-2xl font-black ${totals.netPure>=0?'text-orange-300':'text-green-300'}`}>{Math.abs(settleCalc.pureInItem)} g</p>
                 <p className="text-[10px] text-gray-500">{totals.netPure>=0?`they owe us`:`we owe them`} · {settlePurity}% pure</p>
+                {settleCalc.wPct > 0 && (
+                  <p className="text-[10px] text-yellow-500/80 mt-0.5">
+                    base {settleCalc.base} g {settleCalc.wasteSign === '+' ? '+' : '−'} {settleCalc.wPct}% wastage
+                  </p>
+                )}
               </div>
               {settleCalc.fullInItem !== null && (
                 <div className="border-t border-white/10 pt-2 text-center">
