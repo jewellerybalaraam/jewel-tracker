@@ -433,15 +433,25 @@ export default function InventoryEntry() {
           <div className="space-y-3">
             {rows.map((r, idx) => (
               <ProductRow
-                key={r.productKey}
-                idx={idx} row={r}
-                onChange={(patch) => setRow(idx, patch)}
-                onRemove={() => removeRow(idx)}
-                fetchSuppliers={fetchSuppliers}
-                fetchPurities={fetchPurities}
-                openSupplierModal={(name) => setSupplierModal({ rowIdx: idx, initialName: name })}
-                openProductModal={(name) => setProductModal({ rowIdx: idx, initialName: name })}
-              />
+  key={r.productKey}
+  idx={idx}
+  row={r}
+  onChange={(patch) => setRow(idx, patch)}
+  onRemove={() => removeRow(idx)}
+  fetchSuppliers={fetchSuppliers}
+  fetchPurities={fetchPurities}
+
+  // ADD THESE TWO LINES
+  fetchProductsByName={fetchProductsByName}
+  fetchProductsBySub={fetchProductsBySub}
+
+  openSupplierModal={(name) =>
+    setSupplierModal({ rowIdx: idx, initialName: name })
+  }
+  openProductModal={(name) =>
+    setProductModal({ rowIdx: idx, initialName: name })
+  }
+/>
             ))}
           </div>
 
@@ -770,10 +780,20 @@ function StepDot({ active, done, index, label }) {
 }
 
 function ProductRow({
-  idx, row, onChange, onRemove,
-  fetchSuppliers, fetchPurities,
-  openSupplierModal, openProductModal,
-}) {
+  idx,
+  row,
+  onChange,
+  onRemove,
+  fetchSuppliers,
+  fetchPurities,
+
+  // ADD THESE
+  fetchProductsByName,
+  fetchProductsBySub,
+
+  openSupplierModal,
+  openProductModal,
+})  {
   return (
     <div className="bg-white/5 border border-white/10 rounded-3xl p-4 sm:p-5">
       <div className="flex items-center justify-between mb-3">
