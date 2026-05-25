@@ -295,10 +295,15 @@ function QuickScanPanel({ pendingRows, onBulk, onMarkAll }) {
   const [manual, setManual]   = useState('')
   const lastScanRef = useRef({ code: '', at: 0 })
 
-  // index pending barcode rows by barcode
+  // index pending barcode rows by barcode (normalized: no dashes/spaces)
   const barcodeMap = useMemo(() => {
     const m = {}
-    pendingRows.forEach(r => { if (r.kind === 'barcode' && r.barcode && !r.billId) m[r.barcode] = r })
+    pendingRows.forEach(r => {
+      if (r.kind === 'barcode' && r.barcode && !r.billId) {
+        const key = String(r.barcode).replace(/[-\s]/g, '').toUpperCase()
+        m[key] = r
+      }
+    })
     return m
   }, [pendingRows])
 
@@ -313,7 +318,9 @@ function QuickScanPanel({ pendingRows, onBulk, onMarkAll }) {
     if (lastScanRef.current.code === code && now - lastScanRef.current.at < 2500) return
     lastScanRef.current = { code, at: now }
 
-    const row = barcodeMap[code]
+    // normalize: strip dashes & spaces, uppercase — matches stored barcodes regardless of format
+    const normalizedCode = code.replace(/[-\s]/g, '').toUpperCase()
+    const row = barcodeMap[normalizedCode]
     if (!row) {
       pushFeed({ code, status: 'NOT FOUND', ok: false })
       try { navigator.vibrate?.([60,40,60]) } catch{}
