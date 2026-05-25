@@ -647,6 +647,7 @@ export default function InventoryEntry() {
                                   display: `${it.lotNumber}-${it.prefix}${it.serialNo}`,
                                   productName: it.productName,
                                   subProductName: it.subProductName,
+                                  prefix: it.prefix,
                                   netWt: it.netWt, size: it.size, purity: it.purity,
                                 }])}
                               />
