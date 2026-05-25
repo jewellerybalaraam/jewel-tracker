@@ -24,11 +24,11 @@ function ClientPicker({ value, mobile, onChange }) {
 
   const matches = useMemo(() => {
     const term = q.trim().toLowerCase()
-    if (!term) return clients.slice(0,8)
+    if (!term) return clients.filter(c => c.clientName).slice(0, 8)
     return clients.filter(c =>
-      c.clientName.toLowerCase().includes(term) ||
-      (c.mobiles||[]).some(m => m.includes(term))
-    ).slice(0,8)
+      (c.clientName || '').toLowerCase().includes(term) ||
+      (c.mobiles || []).some(m => (m || '').includes(term))
+    ).slice(0, 8)
   }, [q, clients])
 
   const choose = (c) => {
