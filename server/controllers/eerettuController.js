@@ -2,13 +2,61 @@ import Eerettu from '../models/Eerettu.js'
 
 export const createEerettu = async (req, res) => {
   try {
-    const eerettu = await Eerettu.create(req.body)
+    const { items = [] } = req.body || {}
+
+    // normalize + validate payload early
+    const normalizedItems = items.map(it => ({
+      ...it,
+      barcode: typeof it?.barcode === 'string'
+        ? it.barcode.replace(/-/g, '').trim()
+        : String(it?.barcode || '').trim(),
+    }))
+
+    // duplicates inside same request are rejected
+    const seen = new Set()
+    const dupes = []
+    for (const it of normalizedItems) {
+      if (!it.barcode) continue
+      if (seen.has(it.barcode)) dupes.push(it.barcode)
+      seen.add(it.barcode)
+    }
+    if (dupes.length) {
+      return res.status(400).json({ message: `Duplicate barcode(s) in request: ${[...new Set(dupes)].join(', ')}` })
+    }
+
+    // IMPORTANT: per requirement, if barcode is PENDING or SOLD it can’t be added to Eerettu.
+    // Current system uses Eerettu.items.status to track this.
+    // So we check existing eerettus for any of the requested barcodes that are not PENDING/RETURNED? (only PENDING/SOLD are blocked)
+    const blocked = await Eerettu.find({
+      'items.barcode': { $in: normalizedItems.map(i => i.barcode).filter(Boolean) },
+      'items.status': { $in: ['PENDING', 'SOLD'] },
+    }).select({ 'items.$': 1, clientName: 1 })
+
+    if (blocked?.length) {
+      // collect unique barcodes already in PENDING/SOLD across any existing Eerettu items
+      const barcodes = new Set()
+      for (const e of blocked) {
+        for (const it of e.items || []) {
+          if (it?.barcode) barcodes.add(it.barcode)
+        }
+      }
+      return res.status(400).json({
+        message: `Some barcodes are already reserved/used (PENDING or SOLD): ${Array.from(barcodes).join(', ')}`,
+      })
+    }
+
+    const eerettu = await Eerettu.create({
+      ...req.body,
+      items: normalizedItems,
+    })
+
     res.json(eerettu)
   } catch (error) {
     console.log(error)
     res.status(500).json({ message: error.message })
   }
 }
+
 
 export const getEerettus = async (req, res) => {
   try {

@@ -511,8 +511,25 @@ export default function NewTransaction() {
       if (mode === 'barcode') {
         const valid = items.filter(i => i.barcode.trim())
         if (!valid.length) { setError('Add at least one barcode'); setSaving(false); return }
-        payload.items = valid.map(i => ({
-          barcode:        i.barcode.trim(),
+
+        // dedupe by normalized barcode inside this transaction request
+        const normalize = (code) => String(code || '').replace(/-/g, '').trim()
+        const byBarcode = new Map()
+        const dupes = []
+        for (const i of valid) {
+          const b = normalize(i.barcode)
+          if (!b) continue
+          if (byBarcode.has(b)) dupes.push(b)
+          else byBarcode.set(b, i)
+        }
+        if (dupes.length) {
+          setError(`Duplicate barcode(s) in this transaction: ${Array.from(new Set(dupes)).join(', ')}`)
+          setSaving(false)
+          return
+        }
+
+        payload.items = Array.from(byBarcode.values()).map(i => ({
+          barcode:        normalize(i.barcode),
           wt:             parseFloat(i.wt) || 0,
           size:           i.size.trim(),
           productName:    i.productName    || '',
