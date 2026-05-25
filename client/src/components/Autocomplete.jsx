@@ -42,6 +42,10 @@ export default function Autocomplete({
   // fetch suggestions on value change (debounced)
   useEffect(() => {
     if (!open) return
+    if (typeof fetcher !== 'function') {
+      setOptions([])
+      return
+    }
     if (debRef.current) clearTimeout(debRef.current)
     debRef.current = setTimeout(async () => {
       try {
@@ -56,6 +60,7 @@ export default function Autocomplete({
     }, 180)
     return () => debRef.current && clearTimeout(debRef.current)
   }, [value, open, fetcher])
+
 
   const pick = (opt) => {
     onPick && onPick(opt)
