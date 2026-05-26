@@ -1,20 +1,18 @@
 import { useEffect, useRef } from 'react'
 import JsBarcode from 'jsbarcode'
 
-/*
-  Renders a small inline CODE128 barcode SVG — used inside the table row tag preview.
-*/
 export default function BarcodeLabel({
   code,
   display,
-  width   = 1.8,
-  height  = 50,
+  width = 1.8,
+  height = 50,
   showText = true,
 }) {
   const ref = useRef(null)
 
   useEffect(() => {
     if (!ref.current || !code) return
+
     try {
       JsBarcode(ref.current, code, {
         format: 'CODE128',
@@ -27,7 +25,9 @@ export default function BarcodeLabel({
         background: '#ffffff',
         lineColor: '#000000',
       })
-    } catch (e) {}
+    } catch (e) {
+      console.error(e)
+    }
   }, [code, display, width, height, showText])
 
   return (
@@ -38,224 +38,258 @@ export default function BarcodeLabel({
 }
 
 /*
-  Prints one or more jewellery tags matching your physical label format:
-
-  ┌─────────────────────────────┐
-  │ BOMBAY PAYAL                │
-  │ [QR]  BRJ                   │
-  │       Wt :25.800            │
-  │ 254-BOP321                  │
-  └─────────────────────────────┘
-  ┌──────────┐
-  │ Size: 9  │  (back tab — only shown when size is present)
-  └──────────┘
-
-  items: [{
-    code,           // raw barcode string e.g. "254BOP321"
-    display,        // formatted e.g. "254-BOP321"
-    productName,
-    subProductName,
-    prefix,         // e.g. "BRJ"
-    netWt,
-    size,
-    purity,
-  }]
+THERMAL JEWELLERY TAG PRINTING
+For TSC thermal printers
 */
 export function printBarcodes(items = []) {
-  const w = window.open('', '_blank', 'width=900,height=700')
-  if (!w) return
+  const printWindow = window.open('', '_blank', 'width=900,height=700')
+
+  if (!printWindow) return
 
   const esc = (s) =>
     String(s || '').replace(/[&<>"']/g, (c) =>
-      ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])
+      ({
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        '"': '&quot;',
+        "'": '&#39;',
+      }[c])
     )
 
-  const tagsHtml = items
-    .map((it, idx) => {
-      const displayCode = it.display || it.code || ''
-      const productLine = [it.productName, it.subProductName].filter(Boolean).join(' ')
-      const wt = it.netWt ? Number(it.netWt).toFixed(3) : ''
-      const prefix = it.prefix || ''
-      const hasSize = it.size && String(it.size).trim()
-
-      return `
-        <!-- MAIN TAG -->
-        <div class="tag" id="tag-wrap-${idx}">
-          <div class="tag-inner">
-            <!-- Top: product name -->
-            <div class="product-name">${esc(productLine)}</div>
-
-            <!-- Middle row: QR + right info -->
-            <div class="mid-row">
-              <canvas class="qr-canvas" id="qr-${idx}" width="52" height="52"></canvas>
-              <div class="right-info">
-                <div class="prefix">${esc(prefix)}</div>
-                ${wt ? `<div class="weight">Wt :${esc(wt)}</div>` : ''}
-                ${it.purity ? `<div class="purity">${esc(it.purity)}</div>` : ''}
-              </div>
-            </div>
-
-            <!-- Bottom: barcode display number -->
-            <div class="barcode-num">${esc(displayCode)}</div>
-          </div>
-        </div>
-
-        <!-- BACK / SIZE TAB (printed right after the main tag) -->
-        ${hasSize ? `
-        <div class="size-tab">
-          <div class="size-label">Size :${esc(it.size)}</div>
-        </div>
-        ` : ''}
-      `
-    })
-    .join('')
-
-  const html = `<!DOCTYPE html>
+  const html = `
+<!DOCTYPE html>
 <html>
+
 <head>
-  <meta charset="utf-8" />
-  <title>Print Tags</title>
-  <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; }
+<meta charset="utf-8" />
+<title>Print Tags</title>
 
-    body {
-      font-family: Arial, Helvetica, sans-serif;
-      background: #fff;
-      padding: 4mm;
-    }
+<style>
 
-    /* ── Main tag: 60mm × 28mm ───────────────────────── */
-    .tag {
-      display: inline-block;
-      width: 60mm;
-      height: 28mm;
-      border: 1px dashed #aaa;
-      margin: 1mm 2mm 1mm 0;
-      vertical-align: top;
-      page-break-inside: avoid;
-    }
+@page {
+  size: 50mm 25mm;
+  margin: 0;
+}
 
-    .tag-inner {
-      width: 100%;
-      height: 100%;
-      padding: 1.5mm 2mm;
-      display: flex;
-      flex-direction: column;
-      justify-content: space-between;
-    }
+* {
+  box-sizing: border-box;
+}
 
-    .product-name {
-      font-size: 9pt;
-      font-weight: bold;
-      letter-spacing: 0.3px;
-      line-height: 1.2;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
+body {
+  margin: 0;
+  padding: 0;
+  background: white;
+  font-family: Arial, Helvetica, sans-serif;
+}
 
-    .mid-row {
-      display: flex;
-      align-items: center;
-      gap: 3mm;
-      flex: 1;
-      margin: 1mm 0;
-    }
+.page {
+  width: 50mm;
+}
 
-    .qr-canvas {
-      width: 18mm;
-      height: 18mm;
-      flex-shrink: 0;
-    }
+.label {
+  width: 50mm;
+  height: 25mm;
 
-    .right-info {
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
-      gap: 1.5mm;
-    }
+  position: relative;
 
-    .prefix {
-      font-size: 8.5pt;
-      font-weight: bold;
-    }
+  page-break-after: always;
+  overflow: hidden;
 
-    .weight {
-      font-size: 8pt;
-    }
+  padding: 2mm;
+}
 
-    .purity {
-      font-size: 7pt;
-      color: #555;
-    }
+.product {
+  font-size: 9pt;
+  font-weight: 700;
+  line-height: 1;
+  margin-bottom: 1.2mm;
 
-    .barcode-num {
-      font-size: 8pt;
-      font-family: 'Courier New', monospace;
-      letter-spacing: 0.5px;
-      border-top: 0.3mm solid #ddd;
-      padding-top: 1mm;
-    }
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
 
-    /* ── Size tab: 25mm × 12mm ───────────────────────── */
-    .size-tab {
-      display: inline-block;
-      width: 25mm;
-      height: 12mm;
-      border: 1px dashed #aaa;
-      margin: 1mm 4mm 1mm 0;
-      vertical-align: top;
-      page-break-inside: avoid;
-    }
+.middle {
+  display: flex;
+  align-items: center;
+  gap: 2mm;
+}
 
-    .size-label {
-      width: 100%;
-      height: 100%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 8pt;
-      font-weight: bold;
-    }
+.qr {
+  width: 12mm;
+  height: 12mm;
+  flex-shrink: 0;
+}
 
-    @media print {
-      body { padding: 0; }
-      .tag, .size-tab { border: none; margin: 0.5mm; }
-    }
-  </style>
+.info {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.prefix {
+  font-size: 9pt;
+  font-weight: bold;
+  line-height: 1.1;
+}
+
+.weight {
+  font-size: 8pt;
+  line-height: 1.1;
+}
+
+.bottom {
+  margin-top: 1mm;
+  font-size: 8pt;
+  font-family: monospace;
+}
+
+.size-tag {
+  position: absolute;
+  right: 2mm;
+  bottom: 1.5mm;
+
+  font-size: 7pt;
+  font-weight: bold;
+}
+
+@media print {
+  html,
+  body {
+    width: 50mm;
+    height: auto;
+  }
+}
+
+</style>
 </head>
+
 <body>
-  ${tagsHtml}
 
-  <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
-  <script>
-    var items = ${JSON.stringify(
-      items.map((i) => ({ code: i.code || '', display: i.display || i.code || '' }))
-    )};
+<div class="page">
 
-    function renderAll() {
-      items.forEach(function (it, idx) {
-        var canvas = document.getElementById('qr-' + idx);
-        if (!canvas || !it.code) return;
-        try {
-          QRCode.toCanvas(canvas, it.code, {
-            width: canvas.width,
-            margin: 1,
-            color: { dark: '#000000', light: '#ffffff' },
-          }, function(err) {});
-        } catch(e) {}
-      });
-    }
+${items
+  .map((item, idx) => {
+    const product = [item.productName, item.subProductName]
+      .filter(Boolean)
+      .join(' ')
 
-    window.onload = function () {
-      renderAll();
-      setTimeout(function () { window.print(); }, 600);
-    };
-  </script>
+    const wt = item.netWt
+      ? Number(item.netWt).toFixed(3)
+      : ''
+
+    return `
+
+<div class="label">
+
+  <div class="product">
+    ${esc(product)}
+  </div>
+
+  <div class="middle">
+
+    <canvas
+      id="qr-${idx}"
+      class="qr"
+      width="100"
+      height="100"
+    ></canvas>
+
+    <div class="info">
+
+      <div class="prefix">
+        ${esc(item.prefix || '')}
+      </div>
+
+      <div class="weight">
+        Wt :${esc(wt)}
+      </div>
+
+      ${
+        item.purity
+          ? `
+      <div class="weight">
+        ${esc(item.purity)}
+      </div>
+      `
+          : ''
+      }
+
+    </div>
+
+  </div>
+
+  <div class="bottom">
+    ${esc(item.display || item.code || '')}
+  </div>
+
+  ${
+    item.size
+      ? `
+  <div class="size-tag">
+    Size : ${esc(item.size)}
+  </div>
+  `
+      : ''
+  }
+
+</div>
+
+`
+  })
+  .join('')}
+
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
+
+<script>
+
+const items = ${JSON.stringify(
+  items.map((i) => ({
+    code: i.code || '',
+  }))
+)}
+
+function renderQRs() {
+
+  items.forEach((item, idx) => {
+
+    const canvas = document.getElementById('qr-' + idx)
+
+    if (!canvas || !item.code) return
+
+    QRCode.toCanvas(canvas, item.code, {
+      width: 100,
+      margin: 0,
+      color: {
+        dark: '#000000',
+        light: '#ffffff',
+      },
+    })
+
+  })
+
+}
+
+window.onload = async () => {
+
+  renderQRs()
+
+  setTimeout(() => {
+    window.print()
+  }, 500)
+
+}
+
+</script>
+
 </body>
-</html>`
+</html>
+`
 
-  w.document.open()
-  w.document.write(html)
-  w.document.close()
+  printWindow.document.open()
+  printWindow.document.write(html)
+  printWindow.document.close()
 }
