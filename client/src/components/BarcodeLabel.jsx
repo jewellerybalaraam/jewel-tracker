@@ -108,6 +108,7 @@ export async function printBarcodes(items = []) {
   const html = `
 <!DOCTYPE html>
 <html>
+
 <head>
 <meta charset="utf-8" />
 
@@ -120,11 +121,15 @@ export async function printBarcodes(items = []) {
 
 html,
 body {
-  margin: 0;
-  padding: 0;
   width: 50mm;
   height: 15mm;
+
+  margin: 0;
+  padding: 0;
+
   overflow: hidden;
+
+  background: white;
   font-family: Arial, sans-serif;
 }
 
@@ -135,40 +140,51 @@ body {
   display: flex;
   align-items: center;
 
-  padding: 1mm;
   box-sizing: border-box;
+
+  padding: 1mm;
+
+  page-break-after: always;
 }
 
 .left {
-  width: 10mm;
-  height: 10mm;
+  width: 11mm;
+  height: 11mm;
 
   display: flex;
   align-items: center;
   justify-content: center;
 
-  margin-right: 1.5mm;
+  flex-shrink: 0;
+
+  margin-right: 1mm;
 }
 
 .qr {
-  width: 10mm;
-  height: 10mm;
+  width: 11mm;
+  height: 11mm;
 }
 
 .right {
+  flex: 1;
+
   display: flex;
   flex-direction: column;
   justify-content: center;
 
-  line-height: 1;
+  overflow: hidden;
 }
 
 .product {
   font-size: 7px;
   font-weight: bold;
+
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
-.row {
+.inline {
   display: flex;
   align-items: center;
   gap: 2mm;
@@ -176,23 +192,21 @@ body {
   margin-top: 0.3mm;
 }
 
-.shop {
+.shop,
+.size,
+.weight,
+.code {
   font-size: 6px;
+  line-height: 1;
+}
+
+.shop {
   font-weight: bold;
 }
 
-.size {
-  font-size: 6px;
-}
-
-.weight {
-  font-size: 6px;
-  margin-top: 0.3mm;
-}
-
+.weight,
 .code {
-  font-size: 6px;
-  margin-top: 0.3mm;
+  margin-top: 0.4mm;
 }
 
 </style>
@@ -208,8 +222,8 @@ ${items.map((item, idx) => `
     <canvas
       id="qr-${idx}"
       class="qr"
-      width="100"
-      height="100"
+      width="120"
+      height="120"
     ></canvas>
   </div>
 
@@ -219,8 +233,10 @@ ${items.map((item, idx) => `
       ${item.productName || ''}
     </div>
 
-    <div class="row">
-      <div class="shop">BRJ</div>
+    <div class="inline">
+      <div class="shop">
+        BRJ
+      </div>
 
       <div class="size">
         Size: ${item.size || ''}
@@ -255,10 +271,10 @@ items.forEach((item, idx) => {
 
   const canvas = document.getElementById('qr-' + idx)
 
-  if (!canvas || !item.code) return
+  if (!canvas) return
 
   QRCode.toCanvas(canvas, item.code, {
-    width: 100,
+    width: 120,
     margin: 0,
   })
 
@@ -267,7 +283,7 @@ items.forEach((item, idx) => {
 window.onload = () => {
   setTimeout(() => {
     window.print()
-  }, 300)
+  }, 500)
 }
 
 </script>
