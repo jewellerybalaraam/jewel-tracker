@@ -86,13 +86,13 @@ html, body {
 }
 
 .left-blank {
-  flex: 0 0 66mm;
+  flex: 0 0 67mm;
 }
 
 /* Right 25mm content box — column layout */
 .right-half {
-  flex: 0 0 24mm;
-  width: 24mm;
+  flex: 0 0 23mm;
+  width: 23mm;
   height: 15mm;
   display: flex;
   flex-direction: column;
@@ -202,9 +202,9 @@ ${items.map((item, idx) => `
       </div>
       <div class="info">
         <div class="row-brj">
-          <span class="shop">BRJ</span>${item.size ? `<span class="size-val"> Sz:${item.size}</span>` : ''}
+          <span class="shop">BRJ</span>${item.size ? `<span class="size-val"> (${item.size})</span>` : ''}
         </div>
-        <div class="weight">Wt:${Number(item.netWt || 0).toFixed(3)}</div>
+        <div class="weight">W:${Number(item.netWt || 0).toFixed(3)}</div>
         <div class="code">${item.display || item.code || ''}</div>
       </div>
     </div>
