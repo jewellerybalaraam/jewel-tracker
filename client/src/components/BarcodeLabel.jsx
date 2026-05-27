@@ -105,20 +105,20 @@ body {
   height: 15mm;
   display: flex;
   flex-direction: column;
-  padding: 0.5mm;
+  padding: 0.4mm;
   overflow: hidden;
 }
 
 /* Product Name */
 .product {
   width: 100%;
-  font-size: 5.8pt;
+  font-size: 5.5pt;
   font-weight: bold;
-  line-height: 1;
+  line-height: 0.9;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  margin-bottom: 0.2mm;
+  margin-bottom: 0.1mm;
 }
 
 /* Bottom Layout */
@@ -126,21 +126,21 @@ body {
   display: flex;
   flex-direction: row;
   align-items: flex-start;
-  gap: 0.6mm;
+  gap: 0.5mm;
   flex: 1;
   overflow: hidden;
 }
 
 /* QR */
 .qr-wrap {
-  width: 8.5mm;
-  height: 8.5mm;
-  flex: 0 0 8.5mm;
+  width: 7mm;
+  height: 7mm;
+  flex: 0 0 7mm;
 }
 
 .qr-wrap img {
-  width: 8.5mm;
-  height: 8.5mm;
+  width: 7mm;
+  height: 7mm;
   display: block;
 }
 
