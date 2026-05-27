@@ -83,7 +83,7 @@ body {
   font-size: 0;
 }
 
-/* Full sticker */
+/* Full Sticker */
 .label {
   width: 90mm;
   height: 15mm;
@@ -94,12 +94,12 @@ body {
   page-break-after: always;
 }
 
-/* Left empty area */
+/* Left Blank Area */
 .left-blank {
   flex: 0 0 68mm;
 }
 
-/* Right content area */
+/* Right Content Area */
 .right-half {
   flex: 0 0 22mm;
   width: 22mm;
@@ -110,19 +110,19 @@ body {
   overflow: hidden;
 }
 
-/* Product name */
+/* Product Name */
 .product {
   width: 100%;
   font-size: 6pt;
   font-weight: bold;
-  line-height: 1.2;
+  line-height: 1.1;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  margin-bottom: 0.6mm;
+  margin-bottom: 0.5mm;
 }
 
-/* Bottom section */
+/* Bottom Layout */
 .bottom-row {
   display: flex;
   flex-direction: row;
@@ -146,31 +146,25 @@ body {
   display: block;
 }
 
-/* Right text info */
+/* Right Text */
 .info {
-  flex: 1 1 0;
+  flex: 1;
   display: flex;
   flex-direction: column;
   justify-content: flex-start;
-  gap: 0.3mm;
-  min-width: 0;
+  gap: 0.2mm;
   overflow: hidden;
   font-weight: bold;
 }
 
-/* BRJ + Weight row */
-.row-brj {
-  display: flex;
-  align-items: baseline;
-  gap: 0.8mm;
-}
-
+/* BRJ */
 .shop {
   font-size: 7pt;
   line-height: 1;
   white-space: nowrap;
 }
 
+/* Weight */
 .weight {
   font-size: 7pt;
   line-height: 1;
@@ -186,7 +180,7 @@ body {
   text-overflow: ellipsis;
 }
 
-/* Size at bottom */
+/* Size */
 .size-val {
   font-size: 6.5pt;
   line-height: 1;
@@ -198,21 +192,19 @@ body {
 
 <body>
 
-${items
-  .map(
-    (item, idx) => `
+${items.map((item, idx) => `
 <div class="label">
 
   <div class="left-blank"></div>
 
   <div class="right-half">
 
-    <!-- Product Name -->
+    <!-- Product -->
     <div class="product">
       ${item.productName || ''}
     </div>
 
-    <!-- Bottom Area -->
+    <!-- Bottom -->
     <div class="bottom-row">
 
       <!-- QR -->
@@ -223,20 +215,18 @@ ${items
       <!-- Info -->
       <div class="info">
 
-        <!-- BRJ + Weight -->
-        <div class="row-brj">
-          <span class="shop">BRJ</span>
-          <div class="weight">
-            Wt:${Number(item.netWt || 0).toFixed(3)}
-          </div>
+        <div class="shop">
+          BRJ
         </div>
 
-        <!-- Code -->
+        <div class="weight">
+          Wt:${Number(item.netWt || 0).toFixed(3)}
+        </div>
+
         <div class="code">
           ${item.display || item.code || ''}
         </div>
 
-        <!-- Size -->
         <div class="size-val">
           ${item.sizeVal ? `Sz:${item.sizeVal}` : ''}
         </div>
@@ -248,9 +238,7 @@ ${items
   </div>
 
 </div>
-`
-  )
-  .join('')}
+`).join('')}
 
 <script>
 window.onload = function () {
