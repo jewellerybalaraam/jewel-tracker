@@ -13,7 +13,6 @@ export default function BarcodeLabel({
 
   useEffect(() => {
     if (!ref.current || !code) return
-
     try {
       JsBarcode(ref.current, code, {
         format: 'CODE128',
@@ -40,14 +39,11 @@ export default function BarcodeLabel({
 
 export async function printBarcodes(items = []) {
 
-  // Pre-render all QR codes as data-URLs so they're ready before print()
+  // Pre-render all QR codes as tiny data-URLs (64px is enough for scanning)
   const qrImages = await Promise.all(
     items.map(async (item) => {
       try {
-        return await QRCode.toDataURL(item.code || 'EMPTY', {
-          margin: 0,
-          width: 140,
-        })
+        return await QRCode.toDataURL(item.code || 'EMPTY', { margin: 0, width: 64 })
       } catch {
         return ''
       }
@@ -63,6 +59,8 @@ export async function printBarcodes(items = []) {
 <meta charset="utf-8" />
 <style>
 
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
 @page {
   size: 50mm 15mm;
   margin: 0;
@@ -70,85 +68,85 @@ export async function printBarcodes(items = []) {
 
 html, body {
   width: 50mm;
-  height: 15mm;
   margin: 0;
   padding: 0;
-  overflow: hidden;
   background: white;
   font-family: Arial, sans-serif;
+  font-size: 0;
 }
 
 .label {
   width: 50mm;
   height: 15mm;
   display: flex;
+  flex-direction: row;
   align-items: center;
-  box-sizing: border-box;
   padding: 1mm;
   page-break-after: always;
+  overflow: hidden;
 }
 
-.left {
+.qr-wrap {
   width: 11mm;
   height: 11mm;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
+  flex: 0 0 11mm;
   margin-right: 1.5mm;
+  overflow: hidden;
 }
 
-.qr {
+.qr-wrap img {
   width: 11mm;
   height: 11mm;
   display: block;
 }
 
-.right {
-  flex: 1;
+.info {
+  flex: 1 1 0;
   display: flex;
   flex-direction: column;
   justify-content: center;
   overflow: hidden;
+  height: 13mm;
 }
 
 .product {
-  font-size: 7px;
+  font-size: 7pt;
   font-weight: bold;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  line-height: 1.2;
+  line-height: 1.15;
 }
 
 .row2 {
   display: flex;
-  align-items: center;
-  gap: 2mm;
-  margin-top: 0.5mm;
+  flex-direction: row;
+  align-items: baseline;
+  gap: 1.5mm;
+  margin-top: 0.4mm;
 }
 
 .shop {
-  font-size: 6.5px;
+  font-size: 6.5pt;
   font-weight: bold;
   line-height: 1;
   white-space: nowrap;
 }
 
-.size {
-  font-size: 6.5px;
+.size-val {
+  font-size: 6.5pt;
   line-height: 1;
   white-space: nowrap;
 }
 
 .weight {
-  font-size: 6px;
+  font-size: 6pt;
   line-height: 1;
   margin-top: 0.5mm;
 }
 
 .code {
-  font-size: 6px;
+  font-size: 6pt;
   line-height: 1;
   margin-top: 0.4mm;
   white-space: nowrap;
@@ -159,34 +157,26 @@ html, body {
 </style>
 </head>
 <body>
-
 ${items.map((item, idx) => `
 <div class="label">
-
-  <div class="left">
-    <img src="${qrImages[idx]}" class="qr" />
+  <div class="qr-wrap">
+    <img src="${qrImages[idx]}" width="42" height="42" style="width:11mm;height:11mm;display:block;" />
   </div>
-
-  <div class="right">
+  <div class="info">
     <div class="product">${item.productName || ''}</div>
-
     <div class="row2">
-      <div class="shop">BRJ</div>${item.size ? `<div class="size">Size: ${item.size}</div>` : ''}
+      <span class="shop">BRJ</span>${item.size ? `<span class="size-val">Size: ${item.size}</span>` : ''}
     </div>
-
     <div class="weight">Wt: ${Number(item.netWt || 0).toFixed(3)}</div>
     <div class="code">${item.display || item.code || ''}</div>
   </div>
-
 </div>
 `).join('')}
-
 <script>
-window.onload = function() {
-  setTimeout(function() { window.print(); }, 300);
+window.onload = function () {
+  setTimeout(function () { window.print(); }, 400);
 };
 </script>
-
 </body>
 </html>`
 
