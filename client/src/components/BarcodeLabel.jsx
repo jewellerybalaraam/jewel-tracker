@@ -170,13 +170,13 @@ html, body {
 }
 
 .weight {
-  font-size: 7pt;
+  font-size: 7.5pt;
   line-height: 1;
   white-space: nowrap;
 }
 
 .code {
-  font-size: 7pt;
+  font-size: 7.5pt;
   font-weight: bold;
   line-height: 1;
   white-space: nowrap;
