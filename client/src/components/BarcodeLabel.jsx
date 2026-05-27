@@ -83,43 +83,42 @@ body {
   font-size: 0;
 }
 
-/* Full Sticker */
+/* Sticker */
 .label {
   width: 90mm;
   height: 15mm;
   display: flex;
   flex-direction: row;
-  align-items: stretch;
   overflow: hidden;
   page-break-after: always;
 }
 
-/* Left Blank Area */
+/* Left Blank */
 .left-blank {
   flex: 0 0 68mm;
 }
 
-/* Right Content Area */
+/* Right Side */
 .right-half {
   flex: 0 0 22mm;
   width: 22mm;
   height: 15mm;
   display: flex;
   flex-direction: column;
-  padding: 0.8mm 0.5mm;
+  padding: 0.5mm;
   overflow: hidden;
 }
 
 /* Product Name */
 .product {
   width: 100%;
-  font-size: 6pt;
+  font-size: 5.8pt;
   font-weight: bold;
-  line-height: 1.1;
+  line-height: 1;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  margin-bottom: 0.5mm;
+  margin-bottom: 0.2mm;
 }
 
 /* Bottom Layout */
@@ -127,22 +126,21 @@ body {
   display: flex;
   flex-direction: row;
   align-items: flex-start;
+  gap: 0.6mm;
   flex: 1;
-  gap: 1mm;
   overflow: hidden;
 }
 
 /* QR */
 .qr-wrap {
-  flex: 0 0 9mm;
-  width: 9mm;
-  height: 9mm;
-  overflow: hidden;
+  width: 8.5mm;
+  height: 8.5mm;
+  flex: 0 0 8.5mm;
 }
 
 .qr-wrap img {
-  width: 9mm;
-  height: 9mm;
+  width: 8.5mm;
+  height: 8.5mm;
   display: block;
 }
 
@@ -152,29 +150,30 @@ body {
   display: flex;
   flex-direction: column;
   justify-content: flex-start;
-  gap: 0.2mm;
+  gap: 0.05mm;
   overflow: hidden;
   font-weight: bold;
+  min-width: 0;
 }
 
 /* BRJ */
 .shop {
-  font-size: 7pt;
-  line-height: 1;
+  font-size: 6.5pt;
+  line-height: 0.95;
   white-space: nowrap;
 }
 
 /* Weight */
 .weight {
-  font-size: 7pt;
-  line-height: 1;
+  font-size: 6.5pt;
+  line-height: 0.95;
   white-space: nowrap;
 }
 
 /* Code */
 .code {
-  font-size: 7pt;
-  line-height: 1;
+  font-size: 6.5pt;
+  line-height: 0.95;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -183,7 +182,7 @@ body {
 /* Size */
 .size-val {
   font-size: 6.5pt;
-  line-height: 1;
+  line-height: 0.95;
   white-space: nowrap;
 }
 
