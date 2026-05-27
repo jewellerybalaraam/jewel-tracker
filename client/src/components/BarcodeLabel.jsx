@@ -39,11 +39,10 @@ export default function BarcodeLabel({
 
 export async function printBarcodes(items = []) {
 
-  // Pre-render all QR codes as tiny data-URLs (64px is enough for scanning)
   const qrImages = await Promise.all(
     items.map(async (item) => {
       try {
-        return await QRCode.toDataURL(item.code || 'EMPTY', { margin: 0, width: 64 })
+        return await QRCode.toDataURL(item.code || 'EMPTY', { margin: 0, width: 80 })
       } catch {
         return ''
       }
@@ -75,7 +74,7 @@ html, body {
   font-size: 0;
 }
 
-/* Full label area — left half intentionally blank */
+/* Full label — left half blank, right half has all content */
 .label {
   width: 50mm;
   height: 15mm;
@@ -92,7 +91,7 @@ html, body {
   width: 25mm;
 }
 
-/* All content lives in the right half only */
+/* Right half: QR on left, text stack on right */
 .right-half {
   flex: 0 0 25mm;
   width: 25mm;
@@ -100,52 +99,58 @@ html, body {
   display: flex;
   flex-direction: row;
   align-items: center;
-  padding: 1mm 1mm 1mm 0.5mm;
+  padding: 1mm 0.5mm 1mm 0.5mm;
+  gap: 1mm;
   overflow: hidden;
 }
 
+/* QR code — tall enough to span all 4 text rows */
 .qr-wrap {
-  flex: 0 0 10mm;
-  width: 10mm;
-  height: 10mm;
+  flex: 0 0 11mm;
+  width: 11mm;
+  height: 11mm;
   overflow: hidden;
-  margin-right: 1mm;
 }
 
 .qr-wrap img {
-  width: 10mm;
-  height: 10mm;
+  width: 11mm;
+  height: 11mm;
   display: block;
 }
 
+/* Text column */
 .info {
   flex: 1 1 0;
   display: flex;
   flex-direction: column;
   justify-content: center;
+  gap: 0.5mm;
   overflow: hidden;
-  height: 13mm;
+  min-width: 0;
 }
 
+/* Row 1: Product name — bold, wraps to 2 lines max */
 .product {
-  font-size: 6pt;
+  font-size: 6.5pt;
   font-weight: bold;
-  white-space: nowrap;
+  line-height: 1.2;
+  word-break: break-word;
   overflow: hidden;
-  text-overflow: ellipsis;
-  line-height: 1.15;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
 }
 
-.row2 {
+/* Row 2: BRJ + Size on same line */
+.row-brj {
   display: flex;
   flex-direction: row;
   align-items: baseline;
-  gap: 0.8mm;
-  margin-top: 0.3mm;
+  gap: 1mm;
 }
 
 .shop {
-  font-size: 6pt;
+  font-size: 6.5pt;
   font-weight: bold;
   line-height: 1;
   white-space: nowrap;
@@ -157,16 +162,17 @@ html, body {
   white-space: nowrap;
 }
 
+/* Row 3: Weight */
 .weight {
-  font-size: 5.5pt;
+  font-size: 6pt;
   line-height: 1;
-  margin-top: 0.4mm;
+  white-space: nowrap;
 }
 
+/* Row 4: Item code */
 .code {
-  font-size: 5.5pt;
+  font-size: 6pt;
   line-height: 1;
-  margin-top: 0.3mm;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -180,14 +186,14 @@ ${items.map((item, idx) => `
   <div class="left-blank"></div>
   <div class="right-half">
     <div class="qr-wrap">
-      <img src="${qrImages[idx]}" width="38" height="38" style="width:10mm;height:10mm;display:block;" />
+      <img src="${qrImages[idx]}" style="width:11mm;height:11mm;display:block;" />
     </div>
     <div class="info">
       <div class="product">${item.productName || ''}</div>
-      <div class="row2">
-        <span class="shop">BRJ</span>${item.size ? `<span class="size-val">Size: ${item.size}</span>` : ''}
+      <div class="row-brj">
+        <span class="shop">BRJ</span>${item.size ? `<span class="size-val">Size:${item.size}</span>` : ''}
       </div>
-      <div class="weight">Wt: ${Number(item.netWt || 0).toFixed(3)}</div>
+      <div class="weight">Wt:${Number(item.netWt || 0).toFixed(3)}</div>
       <div class="code">${item.display || item.code || ''}</div>
     </div>
   </div>
