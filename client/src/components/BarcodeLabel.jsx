@@ -74,12 +74,7 @@ html, body {
   font-size: 0;
 }
 
-/*
-  Sticker = 90mm wide, 15mm tall
-  Rounded box starts ~40mm from left, spans to right edge (50mm wide)
-  We want content in RIGHT HALF of that box = last 25mm
-  So: left-blank = 65mm, content = 25mm
-*/
+/* Full sticker: left blank (65mm) + content right (25mm) */
 .label {
   width: 90mm;
   height: 15mm;
@@ -92,22 +87,42 @@ html, body {
 
 .left-blank {
   flex: 0 0 65mm;
-  width: 65mm;
 }
 
-/* Right 25mm — QR + text */
+/* Right 25mm content box — column layout */
 .right-half {
   flex: 0 0 25mm;
   width: 25mm;
   height: 15mm;
   display: flex;
-  flex-direction: row;
-  align-items: center;
-  padding: 1mm 0.5mm 1mm 0.5mm;
-  gap: 0.8mm;
+  flex-direction: column;
+  padding: 0.8mm 0.5mm 0.8mm 0.5mm;
   overflow: hidden;
 }
 
+/* ROW 1: Product name — full width, top */
+.product {
+  width: 100%;
+  font-size: 6.5pt;
+  font-weight: bold;
+  line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-bottom: 0.6mm;
+}
+
+/* ROW 2: QR (left) + details (right) */
+.bottom-row {
+  display: flex;
+  flex-direction: row;
+  align-items: flex-start;
+  flex: 1;
+  gap: 1mm;
+  overflow: hidden;
+}
+
+/* QR — bottom-left */
 .qr-wrap {
   flex: 0 0 9mm;
   width: 9mm;
@@ -121,25 +136,15 @@ html, body {
   display: block;
 }
 
+/* Text details — bottom-right */
 .info {
   flex: 1 1 0;
   display: flex;
   flex-direction: column;
-  justify-content: center;
-  gap: 0.4mm;
+  justify-content: flex-start;
+  gap: 0.5mm;
   overflow: hidden;
   min-width: 0;
-}
-
-.product {
-  font-size: 6pt;
-  font-weight: bold;
-  line-height: 1.2;
-  word-break: break-word;
-  overflow: hidden;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
 }
 
 .row-brj {
@@ -150,26 +155,27 @@ html, body {
 }
 
 .shop {
-  font-size: 6pt;
+  font-size: 6.5pt;
   font-weight: bold;
   line-height: 1;
   white-space: nowrap;
 }
 
 .size-val {
-  font-size: 5.5pt;
+  font-size: 6pt;
   line-height: 1;
   white-space: nowrap;
 }
 
 .weight {
-  font-size: 5.5pt;
+  font-size: 6pt;
   line-height: 1;
   white-space: nowrap;
 }
 
 .code {
-  font-size: 5.5pt;
+  font-size: 6pt;
+  font-weight: bold;
   line-height: 1;
   white-space: nowrap;
   overflow: hidden;
@@ -183,17 +189,24 @@ ${items.map((item, idx) => `
 <div class="label">
   <div class="left-blank"></div>
   <div class="right-half">
-    <div class="qr-wrap">
-      <img src="${qrImages[idx]}" style="width:9mm;height:9mm;display:block;" />
-    </div>
-    <div class="info">
-      <div class="product">${item.productName || ''}</div>
-      <div class="row-brj">
-        <span class="shop">BRJ</span>${item.size ? `<span class="size-val">Size:${item.size}</span>` : ''}
+
+    <!-- TOP: Product name full width -->
+    <div class="product">${item.productName || ''}</div>
+
+    <!-- BOTTOM: QR left, details right -->
+    <div class="bottom-row">
+      <div class="qr-wrap">
+        <img src="${qrImages[idx]}" style="width:9mm;height:9mm;display:block;" />
       </div>
-      <div class="weight">Wt:${Number(item.netWt || 0).toFixed(3)}</div>
-      <div class="code">${item.display || item.code || ''}</div>
+      <div class="info">
+        <div class="row-brj">
+          <span class="shop">BRJ</span>${item.size ? `<span class="size-val"> Size:${item.size}</span>` : ''}
+        </div>
+        <div class="weight">Wt:${Number(item.netWt || 0).toFixed(3)}</div>
+        <div class="code">${item.display || item.code || ''}</div>
+      </div>
     </div>
+
   </div>
 </div>
 `).join('')}
