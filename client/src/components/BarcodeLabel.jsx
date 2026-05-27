@@ -86,13 +86,13 @@ html, body {
 }
 
 .left-blank {
-  flex: 0 0 65mm;
+  flex: 0 0 68mm;
 }
 
 /* Right 25mm content box — column layout */
 .right-half {
-  flex: 0 0 25mm;
-  width: 25mm;
+  flex: 0 0 22mm;
+  width: 22mm;
   height: 15mm;
   display: flex;
   flex-direction: column;
