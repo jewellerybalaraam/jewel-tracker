@@ -86,13 +86,13 @@ html, body {
 }
 
 .left-blank {
-  flex: 0 0 65mm;
+  flex: 0 0 68mm;
 }
 
 /* Right 25mm content box — column layout */
 .right-half {
-  flex: 0 0 25mm;
-  width: 25mm;
+  flex: 0 0 22mm;
+  width: 22mm;
   height: 15mm;
   display: flex;
   flex-direction: column;
@@ -115,7 +115,6 @@ html, body {
 /* ROW 2: QR (left) + details (right) */
 .bottom-row {
   display: flex;
-  font-size: 7.5pt;
   flex-direction: row;
   align-items: flex-start;
   flex: 1;
@@ -140,7 +139,9 @@ html, body {
 /* Text details — bottom-right */
 .info {
   flex: 1 1 0;
+  font-weight: bold;
   display: flex;
+  font-size: 7.5pt;
   flex-direction: column;
   justify-content: flex-start;
   gap: 0.5mm;
