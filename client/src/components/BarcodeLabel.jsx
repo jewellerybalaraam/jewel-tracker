@@ -204,25 +204,34 @@ const items = ${JSON.stringify(
   }))
 )}
 
-items.forEach((item, idx) => {
+async function generateQRs() {
 
-  const canvas = document.getElementById('qr-' + idx)
+  for (let idx = 0; idx < items.length; idx++) {
 
-  if (!canvas) return
+    const item = items[idx]
 
-  QRCode.toCanvas(canvas, item.code, {
-    width: 140,
-    margin: 0
-  })
+    const canvas = document.getElementById('qr-' + idx)
 
-})
+    if (!canvas) continue
 
-window.onload = () => {
+    await QRCode.toCanvas(canvas, item.code || 'EMPTY', {
+      width: 140,
+      margin: 0,
+      color: {
+        dark: '#000000',
+        light: '#FFFFFF'
+      }
+    })
+  }
+}
+
+window.onload = async () => {
+
+  await generateQRs()
 
   setTimeout(() => {
     window.print()
-  }, 700)
-
+  }, 1000)
 }
 
 </script>
