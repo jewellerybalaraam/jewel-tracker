@@ -75,28 +75,46 @@ html, body {
   font-size: 0;
 }
 
+/* Full label area — left half intentionally blank */
 .label {
   width: 50mm;
   height: 15mm;
   display: flex;
   flex-direction: row;
-  align-items: center;
-  padding: 1mm;
+  align-items: stretch;
   page-break-after: always;
   overflow: hidden;
 }
 
-.qr-wrap {
-  width: 11mm;
-  height: 11mm;
-  flex: 0 0 11mm;
-  margin-right: 1.5mm;
+/* Blank left half */
+.left-blank {
+  flex: 0 0 25mm;
+  width: 25mm;
+}
+
+/* All content lives in the right half only */
+.right-half {
+  flex: 0 0 25mm;
+  width: 25mm;
+  height: 15mm;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  padding: 1mm 1mm 1mm 0.5mm;
   overflow: hidden;
 }
 
+.qr-wrap {
+  flex: 0 0 10mm;
+  width: 10mm;
+  height: 10mm;
+  overflow: hidden;
+  margin-right: 1mm;
+}
+
 .qr-wrap img {
-  width: 11mm;
-  height: 11mm;
+  width: 10mm;
+  height: 10mm;
   display: block;
 }
 
@@ -110,7 +128,7 @@ html, body {
 }
 
 .product {
-  font-size: 7pt;
+  font-size: 6pt;
   font-weight: bold;
   white-space: nowrap;
   overflow: hidden;
@@ -122,33 +140,33 @@ html, body {
   display: flex;
   flex-direction: row;
   align-items: baseline;
-  gap: 1.5mm;
-  margin-top: 0.4mm;
+  gap: 0.8mm;
+  margin-top: 0.3mm;
 }
 
 .shop {
-  font-size: 6.5pt;
+  font-size: 6pt;
   font-weight: bold;
   line-height: 1;
   white-space: nowrap;
 }
 
 .size-val {
-  font-size: 6.5pt;
+  font-size: 6pt;
   line-height: 1;
   white-space: nowrap;
 }
 
 .weight {
-  font-size: 6pt;
+  font-size: 5.5pt;
   line-height: 1;
-  margin-top: 0.5mm;
+  margin-top: 0.4mm;
 }
 
 .code {
-  font-size: 6pt;
+  font-size: 5.5pt;
   line-height: 1;
-  margin-top: 0.4mm;
+  margin-top: 0.3mm;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -159,16 +177,19 @@ html, body {
 <body>
 ${items.map((item, idx) => `
 <div class="label">
-  <div class="qr-wrap">
-    <img src="${qrImages[idx]}" width="42" height="42" style="width:11mm;height:11mm;display:block;" />
-  </div>
-  <div class="info">
-    <div class="product">${item.productName || ''}</div>
-    <div class="row2">
-      <span class="shop">BRJ</span>${item.size ? `<span class="size-val">Size: ${item.size}</span>` : ''}
+  <div class="left-blank"></div>
+  <div class="right-half">
+    <div class="qr-wrap">
+      <img src="${qrImages[idx]}" width="38" height="38" style="width:10mm;height:10mm;display:block;" />
     </div>
-    <div class="weight">Wt: ${Number(item.netWt || 0).toFixed(3)}</div>
-    <div class="code">${item.display || item.code || ''}</div>
+    <div class="info">
+      <div class="product">${item.productName || ''}</div>
+      <div class="row2">
+        <span class="shop">BRJ</span>${item.size ? `<span class="size-val">Size: ${item.size}</span>` : ''}
+      </div>
+      <div class="weight">Wt: ${Number(item.netWt || 0).toFixed(3)}</div>
+      <div class="code">${item.display || item.code || ''}</div>
+    </div>
   </div>
 </div>
 `).join('')}
