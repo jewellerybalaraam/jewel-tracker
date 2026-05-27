@@ -49,8 +49,14 @@ export async function printBarcodes(items = []) {
     })
   )
 
-  const printWindow = window.open('', '_blank')
-  if (!printWindow) return
+  // Remove any old print frame
+  const old = document.getElementById('__barcode_print_frame__')
+  if (old) old.remove()
+
+  const iframe = document.createElement('iframe')
+  iframe.id = '__barcode_print_frame__'
+  iframe.style.cssText = 'position:fixed;width:0;height:0;border:0;left:-9999px;top:-9999px;'
+  document.body.appendChild(iframe)
 
   const html = `<!DOCTYPE html>
 <html>
@@ -212,15 +218,19 @@ ${items.map((item, idx) => `
   </div>
 </div>
 `).join('')}
-<script>
-window.onload = function () {
-  setTimeout(function () { window.print(); }, 400);
-};
-</script>
 </body>
 </html>`
 
-  printWindow.document.open()
-  printWindow.document.write(html)
-  printWindow.document.close()
+  iframe.contentDocument.open()
+  iframe.contentDocument.write(html)
+  iframe.contentDocument.close()
+
+  setTimeout(() => {
+    try {
+      iframe.contentWindow.focus()
+      iframe.contentWindow.print()
+    } catch (e) {
+      console.error('Print failed', e)
+    }
+  }, 400)
 }

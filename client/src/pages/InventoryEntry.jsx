@@ -251,7 +251,21 @@ export default function InventoryEntry() {
       setAllItems(r.data.items || [])
       setSavedLot(r.data.data)
       setItemForm({ size: '', netWt: '', purity: '' })
-      toast.success(`Added ${data.barcodeDisplay}`)
+
+      // auto-print immediately — no new tab, no extra clicks
+      const newItem = data.data
+      printBarcodes([{
+        code:           newItem.barcode,
+        display:        data.barcodeDisplay,
+        productName:    newItem.productName,
+        subProductName: newItem.subProductName,
+        prefix:         newItem.prefix,
+        netWt:          newItem.netWt,
+        size:           newItem.size,
+        purity:         newItem.purity,
+      }])
+
+      toast.success(`Added & printing ${data.barcodeDisplay}`)
     } catch (e) {
       toast.error(e.response?.data?.message || 'Failed to add item')
     } finally {
