@@ -46,14 +46,15 @@ export function printBarcodes(items = []) {
   const labels = items.map((item, idx) => {
 
     return `
+
       <div class="label">
 
         <div class="left">
           <canvas
             id="qr-${idx}"
             class="qr"
-            width="120"
-            height="120"
+            width="140"
+            height="140"
           ></canvas>
         </div>
 
@@ -75,17 +76,19 @@ export function printBarcodes(items = []) {
             ${item.display || item.code || ''}
           </div>
 
-          <div class="size">
-            Size : ${item.size || ''}
-          </div>
+        </div>
 
+        <div class="size">
+          Size : ${item.size || ''}
         </div>
 
       </div>
+
     `
   }).join('')
 
   const html = `
+
 <!DOCTYPE html>
 <html>
 
@@ -96,7 +99,7 @@ export function printBarcodes(items = []) {
 <style>
 
 @page {
-  size: 60mm 20mm;
+  size: 75mm 18mm;
   margin: 0;
 }
 
@@ -109,39 +112,41 @@ body {
 }
 
 body {
-  width: 60mm;
+  width: 75mm;
 }
 
 .label {
 
-  width: 60mm;
-  height: 20mm;
+  width: 75mm;
+  height: 18mm;
 
   display: flex;
+  align-items: center;
+
+  padding: 1mm 2mm;
+
+  box-sizing: border-box;
 
   overflow: hidden;
 
   page-break-after: always;
-
-  border: 1px solid #000;
 }
 
 .left {
 
   width: 18mm;
+  height: 18mm;
 
   display: flex;
   align-items: center;
   justify-content: center;
 
-  border-right: 1px solid #000;
+  margin-right: 2mm;
 }
 
 .right {
 
   flex: 1;
-
-  padding: 1.5mm;
 
   display: flex;
   flex-direction: column;
@@ -151,24 +156,34 @@ body {
 .product {
   font-size: 10px;
   font-weight: bold;
+  line-height: 1;
 }
 
 .shop {
   font-size: 9px;
   font-weight: bold;
-  margin-top: 1mm;
+  margin-top: 0.6mm;
 }
 
-.weight,
-.code,
+.weight {
+  font-size: 9px;
+  margin-top: 0.4mm;
+}
+
+.code {
+  font-size: 9px;
+  margin-top: 0.4mm;
+}
+
 .size {
-  font-size: 8px;
-  margin-top: 0.5mm;
+  font-size: 9px;
+  margin-left: auto;
+  padding-left: 3mm;
 }
 
 .qr {
-  width: 14mm;
-  height: 14mm;
+  width: 16mm;
+  height: 16mm;
 }
 
 </style>
@@ -196,7 +211,7 @@ items.forEach((item, idx) => {
   if (!canvas) return
 
   QRCode.toCanvas(canvas, item.code, {
-    width: 120,
+    width: 140,
     margin: 0
   })
 
@@ -214,6 +229,7 @@ window.onload = () => {
 
 </body>
 </html>
+
 `
 
   printWindow.document.open()
