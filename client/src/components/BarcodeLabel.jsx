@@ -40,78 +40,27 @@ export default function BarcodeLabel({
 
 export async function printBarcodes(items = []) {
 
+  // Pre-render all QR codes as data-URLs so they're ready before print()
   const qrImages = await Promise.all(
     items.map(async (item) => {
-
       try {
-
         return await QRCode.toDataURL(item.code || 'EMPTY', {
           margin: 0,
           width: 140,
         })
-
       } catch {
-
         return ''
       }
     })
   )
 
   const printWindow = window.open('', '_blank')
-
   if (!printWindow) return
 
-  const labels = items.map((item, idx) => {
-
-    return `
-
-      <div class="label">
-
-        <div class="left">
-
-          <img
-            src="${qrImages[idx]}"
-            class="qr"
-          />
-
-        </div>
-
-        <div class="right">
-
-          <div class="product">
-            ${item.productName || ''}
-          </div>
-
-          <div class="shop">
-            BRJ
-          </div>
-
-          <div class="weight">
-            Wt: ${Number(item.netWt || 0).toFixed(3)}
-          </div>
-
-          <div class="code">
-            ${item.display || item.code || ''}
-          </div>
-
-        </div>
-
-        <div class="size">
-          Size : ${item.size || ''}
-        </div>
-
-      </div>
-
-    `
-  }).join('')
-
-  const html = `
-<!DOCTYPE html>
+  const html = `<!DOCTYPE html>
 <html>
-
 <head>
 <meta charset="utf-8" />
-
 <style>
 
 @page {
@@ -119,16 +68,12 @@ export async function printBarcodes(items = []) {
   margin: 0;
 }
 
-html,
-body {
+html, body {
   width: 50mm;
   height: 15mm;
-
   margin: 0;
   padding: 0;
-
   overflow: hidden;
-
   background: white;
   font-family: Arial, sans-serif;
 }
@@ -136,161 +81,114 @@ body {
 .label {
   width: 50mm;
   height: 15mm;
-
   display: flex;
   align-items: center;
-
   box-sizing: border-box;
-
   padding: 1mm;
-
   page-break-after: always;
 }
 
 .left {
   width: 11mm;
   height: 11mm;
-
   display: flex;
   align-items: center;
   justify-content: center;
-
   flex-shrink: 0;
-
-  margin-right: 1mm;
+  margin-right: 1.5mm;
 }
 
 .qr {
   width: 11mm;
   height: 11mm;
+  display: block;
 }
 
 .right {
   flex: 1;
-
   display: flex;
   flex-direction: column;
   justify-content: center;
-
   overflow: hidden;
 }
 
 .product {
   font-size: 7px;
   font-weight: bold;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.2;
+}
 
+.row2 {
+  display: flex;
+  align-items: center;
+  gap: 2mm;
+  margin-top: 0.5mm;
+}
+
+.shop {
+  font-size: 6.5px;
+  font-weight: bold;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.size {
+  font-size: 6.5px;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.weight {
+  font-size: 6px;
+  line-height: 1;
+  margin-top: 0.5mm;
+}
+
+.code {
+  font-size: 6px;
+  line-height: 1;
+  margin-top: 0.4mm;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
-.inline {
-  display: flex;
-  align-items: center;
-  gap: 2mm;
-
-  margin-top: 0.3mm;
-}
-
-.shop,
-.size,
-.weight,
-.code {
-  font-size: 6px;
-  line-height: 1;
-}
-
-.shop {
-  font-weight: bold;
-}
-
-.weight,
-.code {
-  margin-top: 0.4mm;
-}
-
 </style>
 </head>
-
 <body>
 
 ${items.map((item, idx) => `
-
 <div class="label">
 
   <div class="left">
-    <canvas
-      id="qr-${idx}"
-      class="qr"
-      width="120"
-      height="120"
-    ></canvas>
+    <img src="${qrImages[idx]}" class="qr" />
   </div>
 
   <div class="right">
+    <div class="product">${item.productName || ''}</div>
 
-    <div class="product">
-      ${item.productName || ''}
+    <div class="row2">
+      <div class="shop">BRJ</div>${item.size ? `<div class="size">Size: ${item.size}</div>` : ''}
     </div>
 
-    <div class="inline">
-      <div class="shop">
-        BRJ
-      </div>
-
-      <div class="size">
-        Size: ${item.size || ''}
-      </div>
-    </div>
-
-    <div class="weight">
-      Wt: ${Number(item.netWt || 0).toFixed(3)}
-    </div>
-
-    <div class="code">
-      ${item.display || item.code || ''}
-    </div>
-
+    <div class="weight">Wt: ${Number(item.netWt || 0).toFixed(3)}</div>
+    <div class="code">${item.display || item.code || ''}</div>
   </div>
 
 </div>
-
 `).join('')}
 
-<script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
-
 <script>
-
-const items = ${JSON.stringify(
-  items.map((i) => ({
-    code: i.code || '',
-  }))
-)}
-
-items.forEach((item, idx) => {
-
-  const canvas = document.getElementById('qr-' + idx)
-
-  if (!canvas) return
-
-  QRCode.toCanvas(canvas, item.code, {
-    width: 120,
-    margin: 0,
-  })
-
-})
-
-window.onload = () => {
-  setTimeout(() => {
-    window.print()
-  }, 500)
-}
-
+window.onload = function() {
+  setTimeout(function() { window.print(); }, 300);
+};
 </script>
 
 </body>
-</html>
-`
+</html>`
 
   printWindow.document.open()
   printWindow.document.write(html)
