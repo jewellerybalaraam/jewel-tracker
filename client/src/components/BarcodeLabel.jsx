@@ -202,7 +202,7 @@ ${items.map((item, idx) => `
       </div>
       <div class="info">
         <div class="row-brj">
-          <span class="shop">BRJ</span>${item.size ? `<span class="size-val"> (${item.size})</span>` : ''}
+          <span class="shop">BRJ</span>${item.size ? `<span class="size-val">- ${item.size}</span>` : ''}
         </div>
         <div class="weight">W:${Number(item.netWt || 0).toFixed(3)}</div>
         <div class="code">${item.display || item.code || ''}</div>
