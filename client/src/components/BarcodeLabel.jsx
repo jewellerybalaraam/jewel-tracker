@@ -76,7 +76,7 @@ html, body {
 
 /* Full sticker: left blank (65mm) + content right (25mm) */
 .label {
-  width: 90mm;
+  width: 95mm;
   height: 15mm;
   display: flex;
   flex-direction: row;
@@ -86,13 +86,13 @@ html, body {
 }
 
 .left-blank {
-  flex: 0 0 68mm;
+  flex: 0 0 66mm;
 }
 
 /* Right 25mm content box — column layout */
 .right-half {
-  flex: 0 0 22mm;
-  width: 22mm;
+  flex: 0 0 27mm;
+  width: 27mm;
   height: 15mm;
   display: flex;
   flex-direction: column;
