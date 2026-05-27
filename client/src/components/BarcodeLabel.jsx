@@ -61,7 +61,6 @@ export async function printBarcodes(items = []) {
 <meta charset="utf-8" />
 
 <style>
-
 *{
   box-sizing:border-box;
   margin:0;
@@ -122,6 +121,7 @@ html,body{
   display:flex;
   gap:0.4mm;
   overflow:hidden;
+  flex: 1; /* Changed: Allows row to take up remaining height */
 }
 
 /* QR */
@@ -145,16 +145,24 @@ html,body{
   overflow:hidden;
   font-weight:bold;
   min-width:0;
+  flex: 1; /* Changed: Allows info column to stretch down to the bottom */
 }
 
 /* COMMON TEXT */
 .shop,
 .weight,
-.code,
+.code{
+  font-size:6pt;
+  line-height:0.9;
+  white-space:nowrap;
+}
+
+/* SIZE VALUE */
 .size-val{
   font-size:6pt;
   line-height:0.9;
   white-space:nowrap;
+  margin-top: auto; /* Changed: Standard flexbox trick to push this element to the absolute bottom */
 }
 
 /* CODE CUT */
@@ -162,7 +170,6 @@ html,body{
   overflow:hidden;
   text-overflow:ellipsis;
 }
-
 </style>
 </head>
 
@@ -170,45 +177,31 @@ html,body{
 
 ${items.map((item, idx) => `
 <div class="label">
-
   <div class="left-blank"></div>
-
   <div class="right-half">
-
     <div class="product">
       ${item.productName || ''}
     </div>
-
     <div class="bottom-row">
-
       <div class="qr-wrap">
         <img src="${qrImages[idx]}" />
       </div>
-
       <div class="info">
-
         <div class="shop">
           BRJ
         </div>
-
         <div class="weight">
           Wt:${Number(item.netWt || 0).toFixed(3)}
         </div>
-
         <div class="code">
           ${item.display || item.code || ''}
         </div>
-
         <div class="size-val">
           ${item.sizeVal ? `Sz:${item.sizeVal}` : ''}
         </div>
-
       </div>
-
     </div>
-
   </div>
-
 </div>
 `).join('')}
 
