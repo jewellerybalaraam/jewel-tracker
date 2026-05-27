@@ -62,128 +62,105 @@ export async function printBarcodes(items = []) {
 
 <style>
 
-* {
-  box-sizing: border-box;
-  margin: 0;
-  padding: 0;
+*{
+  box-sizing:border-box;
+  margin:0;
+  padding:0;
 }
 
-@page {
-  size: 90mm 15mm;
-  margin: 0;
+@page{
+  size:90mm 15mm;
+  margin:0;
 }
 
-html,
-body {
-  width: 90mm;
-  margin: 0;
-  padding: 0;
-  background: white;
-  font-family: Arial, sans-serif;
-  font-size: 0;
+html,body{
+  width:90mm;
+  margin:0;
+  padding:0;
+  background:#fff;
+  font-family:Arial,sans-serif;
 }
 
-/* Sticker */
-.label {
-  width: 90mm;
-  height: 15mm;
-  display: flex;
-  flex-direction: row;
-  overflow: hidden;
-  page-break-after: always;
+/* FULL LABEL */
+.label{
+  width:90mm;
+  height:15mm;
+  display:flex;
+  overflow:hidden;
+  page-break-after:always;
 }
 
-/* Left Blank */
-.left-blank {
-  flex: 0 0 68mm;
+/* LEFT BLANK */
+.left-blank{
+  width:68mm;
+  flex:0 0 68mm;
 }
 
-/* Right Side */
-.right-half {
-  flex: 0 0 22mm;
-  width: 22mm;
-  height: 15mm;
-  display: flex;
-  flex-direction: column;
-  padding: 0.4mm;
-  overflow: hidden;
+/* RIGHT AREA */
+.right-half{
+  width:22mm;
+  height:15mm;
+  padding:0.2mm;
+  display:flex;
+  flex-direction:column;
+  overflow:hidden;
 }
 
-/* Product Name */
-.product {
-  width: 100%;
-  font-size: 5.5pt;
-  font-weight: bold;
-  line-height: 0.9;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  margin-bottom: 0.1mm;
+/* PRODUCT */
+.product{
+  font-size:5pt;
+  font-weight:bold;
+  line-height:0.9;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  margin-bottom:0.1mm;
 }
 
-/* Bottom Layout */
-.bottom-row {
-  display: flex;
-  flex-direction: row;
-  align-items: flex-start;
-  gap: 0.5mm;
-  flex: 1;
-  overflow: hidden;
+/* LOWER AREA */
+.bottom-row{
+  display:flex;
+  gap:0.4mm;
+  overflow:hidden;
 }
 
 /* QR */
-.qr-wrap {
-  width: 7mm;
-  height: 7mm;
-  flex: 0 0 7mm;
+.qr-wrap{
+  width:6mm;
+  height:6mm;
+  flex:0 0 6mm;
 }
 
-.qr-wrap img {
-  width: 7mm;
-  height: 7mm;
-  display: block;
+.qr-wrap img{
+  width:6mm;
+  height:6mm;
+  display:block;
 }
 
-/* Right Text */
-.info {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  justify-content: flex-start;
-  gap: 0.05mm;
-  overflow: hidden;
-  font-weight: bold;
-  min-width: 0;
+/* TEXT AREA */
+.info{
+  display:flex;
+  flex-direction:column;
+  gap:0;
+  overflow:hidden;
+  font-weight:bold;
+  min-width:0;
 }
 
-/* BRJ */
-.shop {
-  font-size: 6.5pt;
-  line-height: 0.95;
-  white-space: nowrap;
+/* COMMON TEXT */
+.shop,
+.weight,
+.code,
+.size-val{
+  font-size:6pt;
+  line-height:0.9;
+  white-space:nowrap;
 }
 
-/* Weight */
-.weight {
-  font-size: 6.5pt;
-  line-height: 0.95;
-  white-space: nowrap;
-}
-
-/* Code */
-.code {
-  font-size: 6.5pt;
-  line-height: 0.95;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-/* Size */
-.size-val {
-  font-size: 6.5pt;
-  line-height: 0.95;
-  white-space: nowrap;
+/* CODE CUT */
+.code{
+  overflow:hidden;
+  text-overflow:ellipsis;
 }
 
 </style>
@@ -198,20 +175,16 @@ ${items.map((item, idx) => `
 
   <div class="right-half">
 
-    <!-- Product -->
     <div class="product">
       ${item.productName || ''}
     </div>
 
-    <!-- Bottom -->
     <div class="bottom-row">
 
-      <!-- QR -->
       <div class="qr-wrap">
         <img src="${qrImages[idx]}" />
       </div>
 
-      <!-- Info -->
       <div class="info">
 
         <div class="shop">
@@ -240,10 +213,10 @@ ${items.map((item, idx) => `
 `).join('')}
 
 <script>
-window.onload = function () {
-  setTimeout(function () {
+window.onload=function(){
+  setTimeout(function(){
     window.print()
-  }, 400)
+  },400)
 }
 </script>
 
