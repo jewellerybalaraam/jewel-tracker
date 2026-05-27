@@ -103,7 +103,7 @@ html, body {
 /* ROW 1: Product name — full width, top */
 .product {
   width: 100%;
-  font-size: 6.5pt;
+  font-size: 6pt;
   font-weight: bold;
   line-height: 1.2;
   white-space: nowrap;
@@ -115,6 +115,7 @@ html, body {
 /* ROW 2: QR (left) + details (right) */
 .bottom-row {
   display: flex;
+  font-size: 7.5pt;
   flex-direction: row;
   align-items: flex-start;
   flex: 1;
