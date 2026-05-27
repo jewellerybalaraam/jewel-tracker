@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react'
 import JsBarcode from 'jsbarcode'
+import QRCode from 'qrcode'
 
 export default function BarcodeLabel({
   code,
@@ -37,7 +38,24 @@ export default function BarcodeLabel({
   )
 }
 
-export function printBarcodes(items = []) {
+export async function printBarcodes(items = []) {
+
+  const qrImages = await Promise.all(
+    items.map(async (item) => {
+
+      try {
+
+        return await QRCode.toDataURL(item.code || 'EMPTY', {
+          margin: 0,
+          width: 140,
+        })
+
+      } catch {
+
+        return ''
+      }
+    })
+  )
 
   const printWindow = window.open('', '_blank')
 
@@ -50,12 +68,12 @@ export function printBarcodes(items = []) {
       <div class="label">
 
         <div class="left">
-          <canvas
-            id="qr-${idx}"
+
+          <img
+            src="${qrImages[idx]}"
             class="qr"
-            width="140"
-            height="140"
-          ></canvas>
+          />
+
         </div>
 
         <div class="right">
@@ -184,6 +202,7 @@ body {
 .qr {
   width: 16mm;
   height: 16mm;
+  object-fit: contain;
 }
 
 </style>
@@ -194,44 +213,14 @@ body {
 
 ${labels}
 
-<script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
-
 <script>
 
-const items = ${JSON.stringify(
-  items.map(i => ({
-    code: i.code || ''
-  }))
-)}
-
-async function generateQRs() {
-
-  for (let idx = 0; idx < items.length; idx++) {
-
-    const item = items[idx]
-
-    const canvas = document.getElementById('qr-' + idx)
-
-    if (!canvas) continue
-
-    await QRCode.toCanvas(canvas, item.code || 'EMPTY', {
-      width: 140,
-      margin: 0,
-      color: {
-        dark: '#000000',
-        light: '#FFFFFF'
-      }
-    })
-  }
-}
-
-window.onload = async () => {
-
-  await generateQRs()
+window.onload = () => {
 
   setTimeout(() => {
     window.print()
-  }, 1000)
+  }, 500)
+
 }
 
 </script>
