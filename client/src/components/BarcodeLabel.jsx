@@ -37,25 +37,10 @@ export default function BarcodeLabel({
   )
 }
 
-/*
-THERMAL JEWELLERY TAG PRINTING
-For TSC thermal printers
-*/
 export function printBarcodes(items = []) {
-  const printWindow = window.open('', '_blank', 'width=900,height=700')
+  const printWindow = window.open('', '_blank')
 
   if (!printWindow) return
-
-  const esc = (s) =>
-    String(s || '').replace(/[&<>"']/g, (c) =>
-      ({
-        '&': '&amp;',
-        '<': '&lt;',
-        '>': '&gt;',
-        '"': '&quot;',
-        "'": '&#39;',
-      }[c])
-    )
 
   const html = `
 <!DOCTYPE html>
@@ -63,103 +48,85 @@ export function printBarcodes(items = []) {
 
 <head>
 <meta charset="utf-8" />
-<title>Print Tags</title>
 
 <style>
 
 @page {
-  size: 50mm 25mm;
+  size: 60mm 20mm;
   margin: 0;
 }
 
-* {
-  box-sizing: border-box;
-}
-
+html,
 body {
   margin: 0;
   padding: 0;
   background: white;
-  font-family: Arial, Helvetica, sans-serif;
-}
-
-.page {
-  width: 50mm;
+  font-family: Arial, sans-serif;
 }
 
 .label {
-  width: 50mm;
-  height: 25mm;
+  width: 60mm;
+  height: 20mm;
 
-  position: relative;
+  display: flex;
+  flex-direction: row;
+
+  overflow: hidden;
 
   page-break-after: always;
-  overflow: hidden;
-
-  padding: 2mm;
 }
 
-.product {
-  font-size: 9pt;
-  font-weight: 700;
-  line-height: 1;
-  margin-bottom: 1.2mm;
+.left {
+  width: 32mm;
+  height: 100%;
 
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.middle {
   display: flex;
   align-items: center;
-  gap: 2mm;
+  justify-content: center;
+
+  border-right: 1px solid #000;
 }
 
-.qr {
-  width: 12mm;
-  height: 12mm;
-  flex-shrink: 0;
-}
+.right {
+  flex: 1;
 
-.info {
+  padding: 1.5mm;
+
   display: flex;
   flex-direction: column;
   justify-content: center;
 }
 
-.prefix {
-  font-size: 9pt;
+.product {
+  font-size: 11px;
   font-weight: bold;
   line-height: 1.1;
+}
+
+.shop {
+  font-size: 10px;
+  font-weight: bold;
+  margin-top: 1mm;
 }
 
 .weight {
-  font-size: 8pt;
-  line-height: 1.1;
+  font-size: 10px;
+  margin-top: 0.5mm;
 }
 
-.bottom {
+.code {
+  font-size: 10px;
+  margin-top: 0.5mm;
+}
+
+.size {
+  font-size: 10px;
   margin-top: 1mm;
-  font-size: 8pt;
-  font-family: monospace;
 }
 
-.size-tag {
-  position: absolute;
-  right: 2mm;
-  bottom: 1.5mm;
-
-  font-size: 7pt;
-  font-weight: bold;
-}
-
-@media print {
-  html,
-  body {
-    width: 50mm;
-    height: auto;
-  }
+.qr {
+  width: 15mm;
+  height: 15mm;
 }
 
 </style>
@@ -167,80 +134,46 @@ body {
 
 <body>
 
-<div class="page">
-
-${items
-  .map((item, idx) => {
-    const product = [item.productName, item.subProductName]
-      .filter(Boolean)
-      .join(' ')
-
-    const wt = item.netWt
-      ? Number(item.netWt).toFixed(3)
-      : ''
-
-    return `
+${items.map((item, idx) => `
 
 <div class="label">
 
-  <div class="product">
-    ${esc(product)}
-  </div>
-
-  <div class="middle">
-
+  <div class="left">
     <canvas
       id="qr-${idx}"
       class="qr"
-      width="100"
-      height="100"
+      width="120"
+      height="120"
     ></canvas>
+  </div>
 
-    <div class="info">
+  <div class="right">
 
-      <div class="prefix">
-        ${esc(item.prefix || '')}
-      </div>
+    <div class="product">
+      ${item.productName || ''}
+    </div>
 
-      <div class="weight">
-        Wt :${esc(wt)}
-      </div>
+    <div class="shop">
+      BRJ
+    </div>
 
-      ${
-        item.purity
-          ? `
-      <div class="weight">
-        ${esc(item.purity)}
-      </div>
-      `
-          : ''
-      }
+    <div class="weight">
+      Wt: ${Number(item.netWt || 0).toFixed(3)}
+    </div>
 
+    <div class="code">
+      ${item.display || item.code || ''}
+    </div>
+
+    <div class="size">
+      Size : ${item.size || ''}
     </div>
 
   </div>
 
-  <div class="bottom">
-    ${esc(item.display || item.code || '')}
-  </div>
-
-  ${
-    item.size
-      ? `
-  <div class="size-tag">
-    Size : ${esc(item.size)}
-  </div>
-  `
-      : ''
-  }
-
 </div>
 
-`
-  })
-  .join('')}
-
-</div>
+`).join('')}
 
 <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
 
@@ -252,35 +185,23 @@ const items = ${JSON.stringify(
   }))
 )}
 
-function renderQRs() {
+items.forEach((item, idx) => {
 
-  items.forEach((item, idx) => {
+  const canvas = document.getElementById('qr-' + idx)
 
-    const canvas = document.getElementById('qr-' + idx)
+  if (!canvas) return
 
-    if (!canvas || !item.code) return
-
-    QRCode.toCanvas(canvas, item.code, {
-      width: 100,
-      margin: 0,
-      color: {
-        dark: '#000000',
-        light: '#ffffff',
-      },
-    })
-
+  QRCode.toCanvas(canvas, item.code, {
+    width: 120,
+    margin: 0,
   })
 
-}
+})
 
-window.onload = async () => {
-
-  renderQRs()
-
+window.onload = () => {
   setTimeout(() => {
     window.print()
   }, 500)
-
 }
 
 </script>
