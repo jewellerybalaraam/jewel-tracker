@@ -13,7 +13,6 @@ export default function BarcodeLabel({
 
   useEffect(() => {
     if (!ref.current || !code) return
-
     try {
       JsBarcode(ref.current, code, {
         format: 'CODE128',
@@ -39,13 +38,11 @@ export default function BarcodeLabel({
 }
 
 export async function printBarcodes(items = []) {
+
   const qrImages = await Promise.all(
     items.map(async (item) => {
       try {
-        return await QRCode.toDataURL(item.code || 'EMPTY', {
-          margin: 0,
-          width: 64,
-        })
+        return await QRCode.toDataURL(item.code || 'EMPTY', { margin: 0, width: 64 })
       } catch {
         return ''
       }
@@ -59,160 +56,167 @@ export async function printBarcodes(items = []) {
 <html>
 <head>
 <meta charset="utf-8" />
-
 <style>
-*{
-  box-sizing:border-box;
-  margin:0;
-  padding:0;
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+@page {
+  size: 90mm 15mm;
+  margin: 0;
 }
 
-@page{
-  size:90mm 15mm;
-  margin:0;
+html, body {
+  width: 90mm;
+  margin: 0;
+  padding: 0;
+  background: white;
+  font-family: Arial, sans-serif;
+  font-size: 0;
 }
 
-html,body{
-  width:90mm;
-  margin:0;
-  padding:0;
-  background:#fff;
-  font-family:Arial,sans-serif;
+/* Full sticker: left blank (65mm) + content right (25mm) */
+.label {
+  width: 90mm;
+  height: 15mm;
+  display: flex;
+  flex-direction: row;
+  align-items: stretch;
+  page-break-after: always;
+  overflow: hidden;
 }
 
-/* FULL LABEL */
-.label{
-  width:90mm;
-  height:15mm;
-  display:flex;
-  overflow:hidden;
-  page-break-after:always;
+.left-blank {
+  flex: 0 0 65mm;
 }
 
-/* LEFT BLANK */
-.left-blank{
-  width:68mm;
-  flex:0 0 68mm;
+/* Right 25mm content box — column layout */
+.right-half {
+  flex: 0 0 25mm;
+  width: 25mm;
+  height: 15mm;
+  display: flex;
+  flex-direction: column;
+  padding: 0.8mm 0.5mm 0.8mm 0.5mm;
+  overflow: hidden;
 }
 
-/* RIGHT AREA */
-.right-half{
-  width:22mm;
-  height:15mm;
-  padding:0.2mm;
-  display:flex;
-  flex-direction:column;
-  overflow:hidden;
+/* ROW 1: Product name — full width, top */
+.product {
+  width: 100%;
+  font-size: 6pt;
+  font-weight: bold;
+  line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-bottom: 0.6mm;
 }
 
-/* PRODUCT */
-.product{
-  font-size:5pt;
-  font-weight:bold;
-  line-height:0.9;
-  white-space:nowrap;
-  overflow:hidden;
-  text-overflow:ellipsis;
-  margin-bottom:0.1mm;
+/* ROW 2: QR (left) + details (right) */
+.bottom-row {
+  display: flex;
+  font-size: 7.5pt;
+  flex-direction: row;
+  align-items: flex-start;
+  flex: 1;
+  gap: 1mm;
+  overflow: hidden;
 }
 
-/* LOWER AREA */
-.bottom-row{
-  display:flex;
-  gap:0.4mm;
-  overflow:hidden;
-  flex: 1; /* Changed: Allows row to take up remaining height */
+/* QR — bottom-left */
+.qr-wrap {
+  flex: 0 0 9mm;
+  width: 9mm;
+  height: 9mm;
+  overflow: hidden;
 }
 
-/* QR */
-.qr-wrap{
-  width:6mm;
-  height:6mm;
-  flex:0 0 6mm;
+.qr-wrap img {
+  width: 9mm;
+  height: 9mm;
+  display: block;
 }
 
-.qr-wrap img{
-  width:6mm;
-  height:6mm;
-  display:block;
+/* Text details — bottom-right */
+.info {
+  flex: 1 1 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  font-weight: bold;
+  gap: 0.5mm;
+  overflow: hidden;
+  min-width: 0;
 }
 
-/* TEXT AREA */
-.info{
-  display:flex;
-  flex-direction:column;
-  gap:0;
-  overflow:hidden;
-  font-weight:bold;
-  min-width:0;
-  flex: 1; /* Changed: Allows info column to stretch down to the bottom */
+.row-brj {
+  display: flex;
+  flex-direction: row;
+  align-items: baseline;
+  gap: 0.8mm;
 }
 
-/* COMMON TEXT */
-.shop,
-.weight,
-.code{
-  font-size:6pt;
-  line-height:0.9;
-  white-space:nowrap;
+.shop {
+  font-size: 6.5pt;
+  font-weight: bold;
+  line-height: 1;
+  white-space: nowrap;
 }
 
-/* SIZE VALUE */
-.size-val{
-  font-size:6pt;
-  line-height:0.9;
-  white-space:nowrap;
-  margin-top: auto; /* Changed: Standard flexbox trick to push this element to the absolute bottom */
+.size-val {
+  font-size: 6pt;
+  line-height: 1;
+  white-space: nowrap;
 }
 
-/* CODE CUT */
-.code{
-  overflow:hidden;
-  text-overflow:ellipsis;
+.weight {
+  font-size: 6pt;
+  line-height: 1;
+  white-space: nowrap;
 }
+
+.code {
+  font-size: 6pt;
+  font-weight: bold;
+  line-height: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 </style>
 </head>
-
 <body>
-
 ${items.map((item, idx) => `
 <div class="label">
   <div class="left-blank"></div>
   <div class="right-half">
-    <div class="product">
-      ${item.productName || ''}
-    </div>
+
+    <!-- TOP: Product name full width -->
+    <div class="product">${item.productName || ''}</div>
+
+    <!-- BOTTOM: QR left, details right -->
     <div class="bottom-row">
       <div class="qr-wrap">
-        <img src="${qrImages[idx]}" />
+        <img src="${qrImages[idx]}" style="width:9mm;height:9mm;display:block;" />
       </div>
       <div class="info">
-        <div class="shop">
-          BRJ
+        <div class="row-brj">
+          <span class="shop">BRJ</span>${item.size ? `<span class="size-val"> Sz:${item.size}</span>` : ''}
         </div>
-        <div class="weight">
-          Wt:${Number(item.netWt || 0).toFixed(3)}
-        </div>
-        <div class="code">
-          ${item.display || item.code || ''}
-        </div>
-        <div class="size-val">
-          ${item.sizeVal ? `Sz:${item.sizeVal}` : ''}
-        </div>
+        <div class="weight">Wt:${Number(item.netWt || 0).toFixed(3)}</div>
+        <div class="code">${item.display || item.code || ''}</div>
       </div>
     </div>
+
   </div>
 </div>
 `).join('')}
-
 <script>
-window.onload=function(){
-  setTimeout(function(){
-    window.print()
-  },400)
-}
+window.onload = function () {
+  setTimeout(function () { window.print(); }, 400);
+};
 </script>
-
 </body>
 </html>`
 
