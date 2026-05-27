@@ -157,26 +157,26 @@ html, body {
 }
 
 .shop {
-  font-size: 6.5pt;
+  font-size: 7.5pt;
   font-weight: bold;
   line-height: 1;
   white-space: nowrap;
 }
 
 .size-val {
-  font-size: 6pt;
+  font-size: 7.5pt;
   line-height: 1;
   white-space: nowrap;
 }
 
 .weight {
-  font-size: 6pt;
+  font-size: 7pt;
   line-height: 1;
   white-space: nowrap;
 }
 
 .code {
-  font-size: 6pt;
+  font-size: 7pt;
   font-weight: bold;
   line-height: 1;
   white-space: nowrap;
@@ -202,10 +202,10 @@ ${items.map((item, idx) => `
       </div>
       <div class="info">
         <div class="row-brj">
-          <span class="shop">BRJ</span>${item.size ? `<span class="size-val"> Size:${item.size}</span>` : ''}
-        </div>
+          <span class="shop">BRJ</span>
         <div class="weight">Wt:${Number(item.netWt || 0).toFixed(3)}</div>
         <div class="code">${item.display || item.code || ''}</div>
+        <div class="size-val">${item.sizeVal ? `Sz:${item.sizeVal}` : ''}</div>
       </div>
     </div>
 
