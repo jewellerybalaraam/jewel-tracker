@@ -42,7 +42,7 @@ export async function printBarcodes(items = []) {
   const qrImages = await Promise.all(
     items.map(async (item) => {
       try {
-        return await QRCode.toDataURL(item.code || 'EMPTY', { margin: 0, width: 80 })
+        return await QRCode.toDataURL(item.code || 'EMPTY', { margin: 0, width: 64 })
       } catch {
         return ''
       }
@@ -61,12 +61,12 @@ export async function printBarcodes(items = []) {
 * { box-sizing: border-box; margin: 0; padding: 0; }
 
 @page {
-  size: 50mm 15mm;
+  size: 90mm 15mm;
   margin: 0;
 }
 
 html, body {
-  width: 50mm;
+  width: 90mm;
   margin: 0;
   padding: 0;
   background: white;
@@ -74,9 +74,14 @@ html, body {
   font-size: 0;
 }
 
-/* Full label — left half blank, right half has all content */
+/*
+  Sticker = 90mm wide, 15mm tall
+  Rounded box starts ~40mm from left, spans to right edge (50mm wide)
+  We want content in RIGHT HALF of that box = last 25mm
+  So: left-blank = 65mm, content = 25mm
+*/
 .label {
-  width: 50mm;
+  width: 90mm;
   height: 15mm;
   display: flex;
   flex-direction: row;
@@ -85,13 +90,12 @@ html, body {
   overflow: hidden;
 }
 
-/* Blank left half */
 .left-blank {
-  flex: 0 0 25mm;
-  width: 25mm;
+  flex: 0 0 65mm;
+  width: 65mm;
 }
 
-/* Right half: QR on left, text stack on right */
+/* Right 25mm — QR + text */
 .right-half {
   flex: 0 0 25mm;
   width: 25mm;
@@ -100,38 +104,35 @@ html, body {
   flex-direction: row;
   align-items: center;
   padding: 1mm 0.5mm 1mm 0.5mm;
-  gap: 1mm;
+  gap: 0.8mm;
   overflow: hidden;
 }
 
-/* QR code — tall enough to span all 4 text rows */
 .qr-wrap {
-  flex: 0 0 11mm;
-  width: 11mm;
-  height: 11mm;
+  flex: 0 0 9mm;
+  width: 9mm;
+  height: 9mm;
   overflow: hidden;
 }
 
 .qr-wrap img {
-  width: 11mm;
-  height: 11mm;
+  width: 9mm;
+  height: 9mm;
   display: block;
 }
 
-/* Text column */
 .info {
   flex: 1 1 0;
   display: flex;
   flex-direction: column;
   justify-content: center;
-  gap: 0.5mm;
+  gap: 0.4mm;
   overflow: hidden;
   min-width: 0;
 }
 
-/* Row 1: Product name — bold, wraps to 2 lines max */
 .product {
-  font-size: 6.5pt;
+  font-size: 6pt;
   font-weight: bold;
   line-height: 1.2;
   word-break: break-word;
@@ -141,37 +142,34 @@ html, body {
   -webkit-box-orient: vertical;
 }
 
-/* Row 2: BRJ + Size on same line */
 .row-brj {
   display: flex;
   flex-direction: row;
   align-items: baseline;
-  gap: 1mm;
+  gap: 0.8mm;
 }
 
 .shop {
-  font-size: 6.5pt;
+  font-size: 6pt;
   font-weight: bold;
   line-height: 1;
   white-space: nowrap;
 }
 
 .size-val {
-  font-size: 6pt;
+  font-size: 5.5pt;
   line-height: 1;
   white-space: nowrap;
 }
 
-/* Row 3: Weight */
 .weight {
-  font-size: 6pt;
+  font-size: 5.5pt;
   line-height: 1;
   white-space: nowrap;
 }
 
-/* Row 4: Item code */
 .code {
-  font-size: 6pt;
+  font-size: 5.5pt;
   line-height: 1;
   white-space: nowrap;
   overflow: hidden;
@@ -186,7 +184,7 @@ ${items.map((item, idx) => `
   <div class="left-blank"></div>
   <div class="right-half">
     <div class="qr-wrap">
-      <img src="${qrImages[idx]}" style="width:11mm;height:11mm;display:block;" />
+      <img src="${qrImages[idx]}" style="width:9mm;height:9mm;display:block;" />
     </div>
     <div class="info">
       <div class="product">${item.productName || ''}</div>
