@@ -38,15 +38,59 @@ export default function BarcodeLabel({
 }
 
 export function printBarcodes(items = []) {
+
   const printWindow = window.open('', '_blank')
 
   if (!printWindow) return
+
+  const labels = items.map((item, idx) => {
+
+    return `
+      <div class="label">
+
+        <div class="left">
+          <canvas
+            id="qr-${idx}"
+            class="qr"
+            width="120"
+            height="120"
+          ></canvas>
+        </div>
+
+        <div class="right">
+
+          <div class="product">
+            ${item.productName || ''}
+          </div>
+
+          <div class="shop">
+            BRJ
+          </div>
+
+          <div class="weight">
+            Wt: ${Number(item.netWt || 0).toFixed(3)}
+          </div>
+
+          <div class="code">
+            ${item.display || item.code || ''}
+          </div>
+
+          <div class="size">
+            Size : ${item.size || ''}
+          </div>
+
+        </div>
+
+      </div>
+    `
+  }).join('')
 
   const html = `
 <!DOCTYPE html>
 <html>
 
 <head>
+
 <meta charset="utf-8" />
 
 <style>
@@ -64,21 +108,27 @@ body {
   font-family: Arial, sans-serif;
 }
 
+body {
+  width: 60mm;
+}
+
 .label {
+
   width: 60mm;
   height: 20mm;
 
   display: flex;
-  flex-direction: row;
 
   overflow: hidden;
 
   page-break-after: always;
+
+  border: 1px solid #000;
 }
 
 .left {
-  width: 32mm;
-  height: 100%;
+
+  width: 18mm;
 
   display: flex;
   align-items: center;
@@ -88,6 +138,7 @@ body {
 }
 
 .right {
+
   flex: 1;
 
   padding: 1.5mm;
@@ -98,90 +149,43 @@ body {
 }
 
 .product {
-  font-size: 11px;
+  font-size: 10px;
   font-weight: bold;
-  line-height: 1.1;
 }
 
 .shop {
-  font-size: 10px;
+  font-size: 9px;
   font-weight: bold;
   margin-top: 1mm;
 }
 
-.weight {
-  font-size: 10px;
-  margin-top: 0.5mm;
-}
-
-.code {
-  font-size: 10px;
-  margin-top: 0.5mm;
-}
-
+.weight,
+.code,
 .size {
-  font-size: 10px;
-  margin-top: 1mm;
+  font-size: 8px;
+  margin-top: 0.5mm;
 }
 
 .qr {
-  width: 15mm;
-  height: 15mm;
+  width: 14mm;
+  height: 14mm;
 }
 
 </style>
+
 </head>
 
 <body>
 
-${items.map((item, idx) => `
-
-<div class="label">
-
-  <div class="left">
-    <canvas
-      id="qr-${idx}"
-      class="qr"
-      width="120"
-      height="120"
-    ></canvas>
-  </div>
-
-  <div class="right">
-
-    <div class="product">
-      ${item.productName || ''}
-    </div>
-
-    <div class="shop">
-      BRJ
-    </div>
-
-    <div class="weight">
-      Wt: ${Number(item.netWt || 0).toFixed(3)}
-    </div>
-
-    <div class="code">
-      ${item.display || item.code || ''}
-    </div>
-
-    <div class="size">
-      Size : ${item.size || ''}
-    </div>
-
-  </div>
-
-</div>
-
-`).join('')}
+${labels}
 
 <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
 
 <script>
 
 const items = ${JSON.stringify(
-  items.map((i) => ({
-    code: i.code || '',
+  items.map(i => ({
+    code: i.code || ''
   }))
 )}
 
@@ -193,15 +197,17 @@ items.forEach((item, idx) => {
 
   QRCode.toCanvas(canvas, item.code, {
     width: 120,
-    margin: 0,
+    margin: 0
   })
 
 })
 
 window.onload = () => {
+
   setTimeout(() => {
     window.print()
-  }, 500)
+  }, 700)
+
 }
 
 </script>
