@@ -117,7 +117,7 @@ export async function printBarcodes(items = []) {
 <style>
 
 @page {
-  size: 75mm 18mm;
+  size: 50mm 15mm;
   margin: 0;
 }
 
