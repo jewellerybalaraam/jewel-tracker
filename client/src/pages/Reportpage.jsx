@@ -278,6 +278,12 @@ const COLS = {
     { header: "Client",       accessor: (r) => r.clientName, width: 22 },
     { header: "Pending Items",accessor: (r) => r.pendingCount, width: 14 },
   ],
+  pendingClientSummary: [
+    { header: "Client",        accessor: (r) => r.clientName,  width: 24 },
+    { header: "Pending Items", accessor: (r) => r.pendingCount, width: 14 },
+    { header: "Total Pcs",     accessor: (r) => r.totalPcs,    width: 10 },
+    { header: "Total Wt (g)",  accessor: (r) => n3(r.totalWt), width: 12 },
+  ],
   outstandingClients: [
     { header: "Client",        accessor: (r) => r.clientName, width: 22 },
     { header: "Bills Unpaid",  accessor: (r) => r.unpaidCount, width: 12 },
@@ -314,9 +320,10 @@ const REPORT_TYPES = [
 ]
 
 const GLOBAL_REPORTS = [
-  { key: "g_pending",   icon: <Users className="w-5 h-5" />,    label: "All Pending Clients", color: "from-yellow-500/20 to-yellow-700/10", border: "border-yellow-500/40", desc: "Every client with pending items" },
-  { key: "g_outstand",  icon: <DollarSign className="w-5 h-5" />, label: "All Outstanding Bills", color: "from-red-500/20 to-red-700/10",   border: "border-red-500/40",  desc: "Cross-client unpaid + partially paid bills" },
-  { key: "g_period",    icon: <Activity className="w-5 h-5" />, label: "Period Activity",  color: "from-purple-500/20 to-purple-700/10", border: "border-purple-500/40", desc: "All activity within a chosen date range" },
+  { key: "g_pending",        icon: <Users className="w-5 h-5" />,      label: "All Pending Clients",         color: "from-yellow-500/20 to-yellow-700/10", border: "border-yellow-500/40", desc: "Every client with pending items" },
+  { key: "g_pending_detail", icon: <Package className="w-5 h-5" />,    label: "Pending Items (Full Detail)",  color: "from-amber-500/20 to-orange-700/10",  border: "border-amber-500/40",  desc: "Full item-level breakdown of all pending jewelry across every client" },
+  { key: "g_outstand",       icon: <DollarSign className="w-5 h-5" />, label: "All Outstanding Bills",       color: "from-red-500/20 to-red-700/10",        border: "border-red-500/40",    desc: "Cross-client unpaid + partially paid bills" },
+  { key: "g_period",         icon: <Activity className="w-5 h-5" />,   label: "Period Activity",             color: "from-purple-500/20 to-purple-700/10",  border: "border-purple-500/40", desc: "All activity within a chosen date range" },
 ]
 
 export default function ReportsPage() {
@@ -450,6 +457,61 @@ export default function ReportsPage() {
           subtitle: "Clients with at least one pending item",
           sections: [{ title: "Pending Clients", columns: COLS.pendingClients, rows, summary: [["Total Clients", rows.length], ["Total Pending Items", rows.reduce((s, r) => s + r.pendingCount, 0)]] }],
           summary: [["Clients", rows.length], ["Items", rows.reduce((s, r) => s + r.pendingCount, 0)]],
+        }
+      }
+
+      if (activeReport === "g_pending_detail") {
+        // All pending item rows, sorted by client then date
+        const allPendingRows = buildItemRows(allEerettus, "PENDING")
+          .sort((a, b) => a.clientName.localeCompare(b.clientName) || new Date(a.inDate) - new Date(b.inDate))
+
+        // Per-client summary
+        const clientMap = {}
+        allPendingRows.forEach((r) => {
+          if (!clientMap[r.clientName]) clientMap[r.clientName] = { clientName: r.clientName, pendingCount: 0, totalPcs: 0, totalWt: 0 }
+          clientMap[r.clientName].pendingCount += 1
+          clientMap[r.clientName].totalPcs     += r.pcs || 1
+          clientMap[r.clientName].totalWt      += r.wt  || 0
+        })
+        const summaryRows = Object.values(clientMap).sort((a, b) => b.pendingCount - a.pendingCount)
+
+        const totalClients = summaryRows.length
+        const totalItems   = allPendingRows.length
+        const totalPcs     = allPendingRows.reduce((s, r) => s + (r.pcs || 1), 0)
+        const totalWt      = allPendingRows.reduce((s, r) => s + (r.wt  || 0), 0)
+
+        return {
+          title: "All Pending Clients — Full Detail",
+          subtitle: "Every pending item across all clients with complete item details",
+          sections: [
+            {
+              title: "Client Summary",
+              columns: COLS.pendingClientSummary,
+              rows: summaryRows,
+              summary: [
+                ["Total Clients",      totalClients],
+                ["Total Pending Items", totalItems],
+                ["Total Pcs",          totalPcs],
+                ["Total Wt (g)",       n3(totalWt)],
+              ],
+            },
+            {
+              title: "All Pending Items (Item-wise Detail)",
+              columns: COLS.itemsPending,
+              rows: allPendingRows,
+              summary: [
+                ["Items", totalItems],
+                ["Pcs",   totalPcs],
+                ["Wt (g)", n3(totalWt)],
+              ],
+            },
+          ],
+          summary: [
+            ["Clients",       totalClients],
+            ["Pending Items", totalItems],
+            ["Total Pcs",     totalPcs],
+            ["Total Wt (g)",  n3(totalWt)],
+          ],
         }
       }
 
