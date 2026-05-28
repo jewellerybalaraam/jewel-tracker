@@ -1,3 +1,4 @@
+import { useState, useCallback } from 'react'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { useAuth } from './context/AuthContext'
 
@@ -16,12 +17,13 @@ import SoldPage from './pages/SoldPage'
 import PendingClientsList from './pages/PendingClientsList'
 import SoldLedger from './pages/SoldLedger'
 import ClientPage from './pages/ClientPage'
-import ReportPage from "./pages/Reportpage";
+import ReportPage from './pages/Reportpage'
 import UserManagement from './pages/UserManagement'
-
 import InventoryEntry from './pages/InventoryEntry'
 import BulkStock from './pages/BulkStock'
 import DirectBilling from './pages/DirectBilling'
+
+import WakeUpOverlay from './components/WakeUpOverlay'
 
 function ProtectedRoute({ children }) {
   const { isLoggedIn } = useAuth()
@@ -29,44 +31,48 @@ function ProtectedRoute({ children }) {
 }
 
 function App() {
+  const [backendReady, setBackendReady] = useState(false)
+  const handleReady = useCallback(() => setBackendReady(true), [])
+
   return (
-    <BrowserRouter>
-      <Routes>
+    <>
+      {/* Wake-up overlay: shown until backend responds; z-index 9999 */}
+      <WakeUpOverlay onReady={handleReady} />
 
-        <Route path="/login" element={<Login />} />
-
-        <Route
-          path="/"
-          element={
-            <ProtectedRoute>
-              <MainLayout />
-            </ProtectedRoute>
-          }
-        >
-          <Route index element={<Dashboard />} />
-          <Route path="new" element={<NewTransaction />} />
-          <Route path="transactions" element={<Transactions />} />
-          <Route path="barcode-search" element={<BarcodeSearch />} />
-          <Route path="customer-history" element={<CustomerHistory />} />
-          <Route path="upload-inventory" element={<UploadInventory />} />
-          <Route path="inventory-entry" element={<InventoryEntry />} />
-          <Route path="bulk-stock" element={<BulkStock />} />
-          <Route path="inventory-search" element={<InventorySearch />} />
-          <Route path="clients" element={<Clients />} />
-          <Route path="pending-clients" element={<PendingClients />} />
-          <Route path="sold" element={<SoldPage />} />
-          <Route path="pending-list" element={<PendingClientsList />} />
-          <Route path="sold-ledger" element={<SoldLedger />} />
-          <Route path="client/:clientName" element={<ClientPage />} />
-          <Route path="reports" element={<ReportPage />} />
-          <Route path="users" element={<UserManagement />} />
-          <Route path="direct-billing" element={<DirectBilling />} />
-        </Route>
-
-        <Route path="*" element={<Navigate to="/" replace />} />
-
-      </Routes>
-    </BrowserRouter>
+      <BrowserRouter>
+        <Routes>
+          <Route path="/login" element={<Login />} />
+          <Route
+            path="/"
+            element={
+              <ProtectedRoute>
+                <MainLayout />
+              </ProtectedRoute>
+            }
+          >
+            <Route index element={<Dashboard />} />
+            <Route path="new" element={<NewTransaction />} />
+            <Route path="transactions" element={<Transactions />} />
+            <Route path="barcode-search" element={<BarcodeSearch />} />
+            <Route path="customer-history" element={<CustomerHistory />} />
+            <Route path="upload-inventory" element={<UploadInventory />} />
+            <Route path="inventory-entry" element={<InventoryEntry />} />
+            <Route path="bulk-stock" element={<BulkStock />} />
+            <Route path="inventory-search" element={<InventorySearch />} />
+            <Route path="clients" element={<Clients />} />
+            <Route path="pending-clients" element={<PendingClients />} />
+            <Route path="sold" element={<SoldPage />} />
+            <Route path="pending-list" element={<PendingClientsList />} />
+            <Route path="sold-ledger" element={<SoldLedger />} />
+            <Route path="client/:clientName" element={<ClientPage />} />
+            <Route path="reports" element={<ReportPage />} />
+            <Route path="users" element={<UserManagement />} />
+            <Route path="direct-billing" element={<DirectBilling />} />
+          </Route>
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+      </BrowserRouter>
+    </>
   )
 }
 
