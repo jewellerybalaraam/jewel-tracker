@@ -9,45 +9,36 @@ import BulkStock from '../models/BulkStock.js'
 
 /*
   Generate a LOT number that is guaranteed not to exist.
-  Strategy: look at both the Lot collection AND legacy barcodes
-  in Inventory (whose leading digits encode the lot number), then
-  take max + 1.
+  Strategy: take the maximum lotNumber from the Lot collection
+  and from the Inventory collection (lotNumber field), then use
+  whichever is larger + 1.
 */
 const generateNextLotNumber = async () => {
   // 1) max from Lot collection
   const latestLot = await Lot.findOne({}).sort({ lotNumber: -1 })
   const fromLot   = latestLot?.lotNumber || 0
 
-  // 2) max from legacy barcodes — barcode pattern: <digits><LETTERS><digits>
-  //    leading digits = lot number
-  let fromInv = 0
-  const sample = await Inventory.find({}, { barcode: 1, lotNumber: 1 }).limit(5000)
-  for (const it of sample) {
-    if (it.lotNumber && it.lotNumber > fromInv) fromInv = it.lotNumber
-    if (it.barcode) {
-      const m = String(it.barcode).match(/^(\d+)/)
-      if (m) {
-        const n = parseInt(m[1], 10)
-        if (!Number.isNaN(n) && n > fromInv) fromInv = n
-      }
-    }
-  }
+  // 2) max lotNumber stored on inventory items
+  const latestInv = await Inventory.findOne({ lotNumber: { $ne: null } }).sort({ lotNumber: -1 })
+  const fromInv   = latestInv?.lotNumber || 0
 
   let next = Math.max(fromLot, fromInv) + 1
-  // safety re-check
+  // safety re-check in case of any race
   while (await Lot.findOne({ lotNumber: next })) next++
   return next
 }
 
 /*
-  Given a LOT number and a product prefix, compute the next
+  Given a productId and product prefix, compute the next global
   serial number (the trailing digits after the letters).
-  This is critical: items added later must keep counting up.
+  Barcode format:  {productId}{PREFIX}{serial}  e.g. 123ABC459
+  We search ALL inventory (not just one lot) so the counter never
+  resets between lots and never produces a duplicate.
 */
-const nextSerialFor = async (lotNumber, prefix) => {
+const nextSerialFor = async (productId, prefix) => {
   const PFX = (prefix || '').toUpperCase()
-  // look in inventory for existing items in this LOT+prefix
-  const regex = new RegExp(`^${lotNumber}${PFX}(\\d+)$`)
+  // match barcodes like "123ABC456" where 123 = productId, ABC = prefix
+  const regex = new RegExp(`^${productId}${PFX}(\\d+)$`)
   const items = await Inventory.find({ barcode: regex }, { barcode: 1 })
   let max = 0
   for (const it of items) {
@@ -310,6 +301,13 @@ export const addItemToLotProduct = async (req, res) => {
 
     const { size, netWt, makingCharge, pureRate, purity } = req.body
 
+    if (!lp.productId) {
+      return res.status(400).json({
+        success: false,
+        message: 'Product line is missing productId — required for barcode',
+      })
+    }
+
     if (!lp.prefix) {
       return res.status(400).json({
         success: false,
@@ -317,8 +315,9 @@ export const addItemToLotProduct = async (req, res) => {
       })
     }
 
-    const serial = await nextSerialFor(lotNumber, lp.prefix)
-    const barcode = `${lotNumber}${lp.prefix}${serial}`
+    // Barcode = productId + PREFIX + globalSerial  e.g. 123ABC459
+    const serial  = await nextSerialFor(lp.productId, lp.prefix)
+    const barcode = `${lp.productId}${lp.prefix}${serial}`
 
     const item = await Inventory.create({
       recordDate:     new Date(),
