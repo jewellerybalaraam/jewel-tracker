@@ -216,9 +216,16 @@ function TodayList({ refresh }) {
               <div key={e._id} className="bg-black/20 rounded-2xl p-4">
                 <div className="flex items-center justify-between mb-3">
                   <span className="font-bold text-orange-300 text-base">{e.roughProductName}</span>
-                  <span className="text-xs text-gray-500 bg-white/5 px-2 py-1 rounded-lg">
-                    {e.mode === 'barcode' ? 'Barcode' : 'Wt Mode'}
-                  </span>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-bold bg-pink-500/20 text-pink-300 border border-pink-500/30 px-2.5 py-1 rounded-lg">
+                      {e.mode === 'barcode'
+                        ? `${(e.items || []).length} item${(e.items || []).length !== 1 ? 's' : ''}`
+                        : `${e.wtMode?.totalPcs ?? 0} pcs`}
+                    </span>
+                    <span className="text-xs text-gray-500 bg-white/5 px-2 py-1 rounded-lg">
+                      {e.mode === 'barcode' ? 'Barcode' : 'Wt Mode'}
+                    </span>
+                  </div>
                 </div>
 
                 {e.mode === 'barcode' && (

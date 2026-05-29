@@ -105,9 +105,16 @@ export default function Transactions() {
               <div>
                 <h2 className="text-xl font-bold text-pink-300">{e.clientName}</h2>
                 <p className="text-orange-300 font-semibold">{e.roughProductName}</p>
-                <span className="text-xs text-gray-500 bg-white/5 px-2 py-0.5 rounded-lg">
-                  {e.mode === 'barcode' ? 'Barcode Mode' : 'Wt Mode'}
-                </span>
+                <div className="flex items-center gap-2 mt-1">
+                  <span className="text-xs text-gray-500 bg-white/5 px-2 py-0.5 rounded-lg">
+                    {e.mode === 'barcode' ? 'Barcode Mode' : 'Wt Mode'}
+                  </span>
+                  <span className="text-xs font-bold bg-pink-500/20 text-pink-300 border border-pink-500/30 px-2.5 py-0.5 rounded-lg">
+                    {e.mode === 'barcode'
+                      ? `${(e.items || []).length} item${(e.items || []).length !== 1 ? 's' : ''}`
+                      : `${e.wtMode?.totalPcs ?? 0} pcs`}
+                  </span>
+                </div>
               </div>
 
               {/* DATE EDIT */}
