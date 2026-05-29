@@ -302,7 +302,7 @@ function InventoryChip({ item }) {
 
 
 // ── single barcode row with auto-fill ──────────────────────
-function BarcodeRow({ item, idx, onChange, onRemove, showRemove, inputRef }) {
+function BarcodeRow({ item, idx, onChange, onRemove, showRemove, inputRef, onEnter }) {
 
   const fetchInventory = async (barcode) => {
     const normalized = normalizeBarcode(barcode.trim())
@@ -329,7 +329,13 @@ function BarcodeRow({ item, idx, onChange, onRemove, showRemove, inputRef }) {
   }
 
   const handleKeyDown = (e) => {
-    if (e.key === 'Enter') fetchInventory(item.barcode)
+    if (e.key === 'Enter' && item.barcode.trim()) {
+      e.preventDefault()
+      // kick off the lookup for this row in the background
+      fetchInventory(item.barcode)
+      // immediately open the next row — no waiting for API
+      onEnter && onEnter()
+    }
   }
 
   const borderColor =
@@ -359,7 +365,7 @@ function BarcodeRow({ item, idx, onChange, onRemove, showRemove, inputRef }) {
                 _autoAdvanced: false,
               })
             }}
-            onBlur={() => item.barcode.trim() && fetchInventory(item.barcode)}
+            onBlur={() => item.barcode.trim() && item.fetchStatus === '' && fetchInventory(item.barcode)}
             onKeyDown={handleKeyDown}
           />
           {item.fetchStatus === 'loading' && (
@@ -421,7 +427,6 @@ export default function NewTransaction() {
 
   const dropdownRef = useRef(null)
   const inputRefs   = useRef([])      // refs to barcode inputs
-  const focusNext   = useRef(false)   // whether to focus the last row after re-render
 
   useEffect(() => {
     if (!clientName.trim()) { setClientSuggestions([]); return }
@@ -444,36 +449,18 @@ export default function NewTransaction() {
     return () => document.removeEventListener('mousedown', handler)
   }, [])
 
-  // auto-advance — when last row has a found barcode AND wt is filled,
-  // append a fresh row and focus its barcode input
-  useEffect(() => {
-    if (mode !== 'barcode') return
-    const last = items[items.length - 1]
-    if (
-      last &&
-      !last._autoAdvanced &&
-      last.fetchStatus === 'found' &&
-      last.barcode.trim() &&
-      last.wt && parseFloat(last.wt) > 0
-    ) {
-      // mark current last row as already advanced so we only do this once per row
-      setItems(prev => {
-        const next = [...prev]
-        next[next.length - 1] = { ...next[next.length - 1], _autoAdvanced: true }
-        return [...next, emptyItem()]
-      })
-      focusNext.current = true
-    }
-  }, [items, mode])
-
-  useEffect(() => {
-    if (focusNext.current) {
-      const lastIdx = items.length - 1
-      const el = inputRefs.current[lastIdx]
-      if (el) el.focus()
-      focusNext.current = false
-    }
-  }, [items])
+  // add a new empty row and immediately focus its barcode input
+  const addAndFocus = () => {
+    setItems(prev => {
+      const next = [...prev, emptyItem()]
+      // schedule focus after React re-renders
+      setTimeout(() => {
+        const el = inputRefs.current[next.length - 1]
+        if (el) el.focus()
+      }, 0)
+      return next
+    })
+  }
 
   const updateItem = (idx, field, value) =>
     setItems(prev => {
@@ -486,10 +473,7 @@ export default function NewTransaction() {
       return next
     })
 
-  const addItem = () => {
-    setItems(prev => [...prev, emptyItem()])
-    focusNext.current = true
-  }
+  const addItem = () => addAndFocus()
 
   const removeItem = (idx) =>
     setItems(prev => prev.filter((_, i) => i !== idx))
@@ -637,8 +621,7 @@ export default function NewTransaction() {
         {mode === 'barcode' && (
           <div className="space-y-4">
             <p className="text-xs text-gray-500">
-              Scan a barcode → weight & size auto-fill from inventory → a new row opens automatically.
-              Barcodes not found in inventory keep focus so you can fix them.
+              Scan a barcode → cursor jumps to next row instantly. Weight, size & purity fill in the background. Just keep scanning.
             </p>
             {items.map((item, i) => (
               <BarcodeRow
@@ -649,6 +632,7 @@ export default function NewTransaction() {
                 onRemove={removeItem}
                 showRemove={items.length > 1}
                 inputRef={(el) => { inputRefs.current[i] = el }}
+                onEnter={addAndFocus}
               />
             ))}
             <button onClick={addItem} className="text-pink-400 hover:text-pink-300 text-sm font-bold py-1">
