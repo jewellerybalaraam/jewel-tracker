@@ -1,4 +1,4 @@
-import mongoose from 'mongoose'
+import mongoose from 'mongoose';
 
 const walletSchema = new mongoose.Schema(
   {
@@ -15,6 +15,9 @@ const walletSchema = new mongoose.Schema(
     billId:  { type: mongoose.Schema.Types.ObjectId, ref: 'Bill', default: null },
   },
   { timestamps: true }
-)
+);
 
-export default mongoose.model('Wallet', walletSchema)
+walletSchema.index({ clientName: 1, date: -1 });
+walletSchema.index({ billId: 1 });
+
+export default mongoose.model('Wallet', walletSchema);

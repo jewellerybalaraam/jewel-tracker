@@ -1,112 +1,99 @@
-import mongoose from 'mongoose'
-import Lot from '../models/Lot.js'
-import Inventory from '../models/Inventory.js'
-import Product from '../models/Product.js'
-import Supplier from '../models/Supplier.js'
-import BulkStock from '../models/BulkStock.js'
+import mongoose from 'mongoose';
+import Lot from '../models/Lot.js';
+import Inventory from '../models/Inventory.js';
+import Product from '../models/Product.js';
+import Supplier from '../models/Supplier.js';
+import BulkStock from '../models/BulkStock.js';
+import Counter from '../models/Counter.js';
 
 // ─── helpers ────────────────────────────────────────────────────────────────
-
-/*
-  Generate a LOT number that is guaranteed not to exist.
-  Strategy: take the maximum lotNumber from the Lot collection
-  and from the Inventory collection (lotNumber field), then use
-  whichever is larger + 1.
-*/
 const generateNextLotNumber = async () => {
-  // 1) max from Lot collection
-  const latestLot = await Lot.findOne({}).sort({ lotNumber: -1 })
-  const fromLot   = latestLot?.lotNumber || 0
+  const latestLot = await Lot.findOne({}).sort({ lotNumber: -1 });
+  const fromLot   = latestLot?.lotNumber || 0;
+  const latestInv = await Inventory.findOne({ lotNumber: { $ne: null } }).sort({ lotNumber: -1 });
+  const fromInv   = latestInv?.lotNumber || 0;
+  let next = Math.max(fromLot, fromInv) + 1;
+  while (await Lot.findOne({ lotNumber: next })) next++;
+  return next;
+};
 
-  // 2) max lotNumber stored on inventory items
-  const latestInv = await Inventory.findOne({ lotNumber: { $ne: null } }).sort({ lotNumber: -1 })
-  const fromInv   = latestInv?.lotNumber || 0
-
-  let next = Math.max(fromLot, fromInv) + 1
-  // safety re-check in case of any race
-  while (await Lot.findOne({ lotNumber: next })) next++
-  return next
+async function upsertBulkIn({ productName, subProductName, purity, unit, quantity, lotNumber, supplierName }) {
+  let s = await BulkStock.findOne({ productName, subProductName: subProductName || '', purity: purity || '' });
+  if (!s) {
+    s = await BulkStock.create({
+      productName, subProductName: subProductName || '', purity: purity || '',
+      unit: unit || 'm',
+    });
+  }
+  s.transactions.push({
+    type:'IN', quantity, unit: unit || 'm', lotNumber, supplierName: supplierName || '', note: 'LOT receipt'
+  });
+  s.totalIn += quantity;
+  s.balance = s.totalIn - s.totalOut;
+  await s.save();
 }
 
-/*
-  Given a productId and product prefix, compute the next global
-  serial number (the trailing digits after the letters).
-  Barcode format:  {productId}{PREFIX}{serial}  e.g. 123ABC459
-  We search ALL inventory (not just one lot) so the counter never
-  resets between lots and never produces a duplicate.
-*/
-const nextSerialFor = async (productId, prefix) => {
-  const PFX = (prefix || '').toUpperCase()
-  // match barcodes like "123ABC456" where 123 = productId, ABC = prefix
-  const regex = new RegExp(`^${productId}${PFX}(\\d+)$`)
-  const items = await Inventory.find({ barcode: regex }, { barcode: 1 })
-  let max = 0
-  for (const it of items) {
-    const m = it.barcode.match(regex)
-    if (m) {
-      const n = parseInt(m[1], 10)
-      if (n > max) max = n
-    }
+async function applyBulkAdjustment({ productName, subProductName, purity, unit, quantity, lotNumber, supplierName, note }) {
+  let s = await BulkStock.findOne({ productName, subProductName: subProductName || '', purity: purity || '' });
+  if (!s) {
+    s = await BulkStock.create({
+      productName, subProductName: subProductName || '', purity: purity || '',
+      unit: unit || 'm',
+    });
   }
-  return max + 1
+  s.transactions.push({
+    type:'ADJUST', quantity, unit: unit || 'm', lotNumber, supplierName: supplierName || '', note: note || 'adjust'
+  });
+  if (quantity > 0) s.totalIn  += quantity;
+  else              s.totalOut += -quantity;
+  s.balance = s.totalIn - s.totalOut;
+  await s.save();
 }
 
 // ─── routes ────────────────────────────────────────────────────────────────
 
-// GET /api/lots/next-number
 export const getNextLotNumber = async (_req, res) => {
   try {
-    const n = await generateNextLotNumber()
-    res.json({ success: true, lotNumber: n })
+    const n = await generateNextLotNumber();
+    res.json({ success: true, lotNumber: n });
   } catch (err) {
-    res.status(500).json({ success: false, message: err.message })
+    res.status(500).json({ success: false, message: err.message });
   }
-}
+};
 
-// GET /api/lots
 export const listLots = async (_req, res) => {
   try {
-    const lots = await Lot.find({}).sort({ lotNumber: -1 })
-    res.json({ success: true, data: lots })
+    const lots = await Lot.find({}).sort({ lotNumber: -1 });
+    res.json({ success: true, data: lots });
   } catch (err) {
-    res.status(500).json({ success: false, message: err.message })
+    res.status(500).json({ success: false, message: err.message });
   }
-}
+};
 
-// GET /api/lots/:lotNumber
 export const getLot = async (req, res) => {
   try {
-    const lotNumber = Number(req.params.lotNumber)
-    const lot = await Lot.findOne({ lotNumber })
-    if (!lot) return res.status(404).json({ success: false, message: 'Lot not found' })
-
-    // fetch items for each product line
-    const items = await Inventory.find({ lotNumber })
-    res.json({ success: true, data: lot, items })
+    const lotNumber = Number(req.params.lotNumber);
+    const lot = await Lot.findOne({ lotNumber });
+    if (!lot) return res.status(404).json({ success: false, message: 'Lot not found' });
+    const items = await Inventory.find({ lotNumber });
+    res.json({ success: true, data: lot, items });
   } catch (err) {
-    res.status(500).json({ success: false, message: err.message })
+    res.status(500).json({ success: false, message: err.message });
   }
-}
+};
 
-// POST /api/lots  — create a new LOT (Step 1)
-// body: { lotNumber?, receivedDate?, notes?, products:[{...}], createdBy? }
 export const createLot = async (req, res) => {
   try {
-    const { receivedDate, notes, products, createdBy } = req.body
-    let lotNumber = Number(req.body.lotNumber)
-
-    if (!lotNumber || isNaN(lotNumber)) lotNumber = await generateNextLotNumber()
-
-    // guard against duplicate (race)
-    const existing = await Lot.findOne({ lotNumber })
+    const { receivedDate, notes, products, createdBy } = req.body;
+    let lotNumber = Number(req.body.lotNumber);
+    if (!lotNumber || isNaN(lotNumber)) lotNumber = await generateNextLotNumber();
+    const existing = await Lot.findOne({ lotNumber });
     if (existing) {
       return res.status(409).json({
         success: false,
         message: `LOT ${lotNumber} already exists`,
-      })
+      });
     }
-
-    // normalise products + assign productKey
     const products_ = (Array.isArray(products) ? products : []).map((p, idx) => ({
       productKey:     p.productKey || `${Date.now()}-${idx}`,
       supplierName:   p.supplierName || '',
@@ -121,17 +108,15 @@ export const createLot = async (req, res) => {
       isBulk:         !!p.isBulk,
       bulkLength:     Number(p.bulkLength)  || 0,
       bulkUnit:       p.bulkUnit || 'm',
-    }))
-
-    // Auto-sync product catalog so autocomplete always has data
+    }));
     for (const p of products_) {
-      if (!p.productName || !p.prefix) continue
+      if (!p.productName || !p.prefix) continue;
       const exists = await Product.findOne({
         productName:    p.productName.trim(),
         subProductName: (p.subProductName || '').trim(),
-      })
+      });
       if (!exists) {
-        const last = await Product.findOne({}).sort({ productId: -1 })
+        const last = await Product.findOne({}).sort({ productId: -1 });
         await Product.create({
           productId:      (last?.productId || 100) + 1,
           prefix:         p.prefix.trim().toUpperCase(),
@@ -140,10 +125,9 @@ export const createLot = async (req, res) => {
           purity:         Number(p.purity) || 92.5,
           isBulk:         !!p.isBulk,
           unit:           p.isBulk ? (p.bulkUnit || 'm') : 'pcs',
-        })
+        });
       }
     }
-
     const lot = await Lot.create({
       lotNumber,
       receivedDate: receivedDate ? new Date(receivedDate) : new Date(),
@@ -151,9 +135,7 @@ export const createLot = async (req, res) => {
       products:     products_,
       createdBy:    createdBy || '',
       status:       'open',
-    })
-
-    // also push IN-transactions for any bulk products
+    });
     for (const p of products_) {
       if (p.isBulk && p.bulkLength > 0) {
         await upsertBulkIn({
@@ -164,36 +146,29 @@ export const createLot = async (req, res) => {
           quantity:       p.bulkLength,
           lotNumber,
           supplierName:   p.supplierName,
-        })
+        });
       }
     }
-
-    res.json({ success: true, data: lot })
+    res.json({ success: true, data: lot });
   } catch (err) {
-    console.log(err)
-    res.status(500).json({ success: false, message: err.message })
+    console.log(err);
+    res.status(500).json({ success: false, message: err.message });
   }
-}
+};
 
-// PUT /api/lots/:lotNumber  — edit a LOT (Step 1 edit)
 export const updateLot = async (req, res) => {
   try {
-    const lotNumber = Number(req.params.lotNumber)
-    const lot = await Lot.findOne({ lotNumber })
-    if (!lot) return res.status(404).json({ success: false, message: 'Lot not found' })
-
-    const { receivedDate, notes, products, status } = req.body
-
-    if (receivedDate) lot.receivedDate = new Date(receivedDate)
-    if (notes !== undefined) lot.notes = notes
-    if (status) lot.status = status
-
-    // diff & reconcile bulk stock when products change
-    const oldBulk = new Map()
+    const lotNumber = Number(req.params.lotNumber);
+    const lot = await Lot.findOne({ lotNumber });
+    if (!lot) return res.status(404).json({ success: false, message: 'Lot not found' });
+    const { receivedDate, notes, products, status } = req.body;
+    if (receivedDate) lot.receivedDate = new Date(receivedDate);
+    if (notes !== undefined) lot.notes = notes;
+    if (status) lot.status = status;
+    const oldBulk = new Map();
     for (const p of lot.products) {
-      if (p.isBulk) oldBulk.set(p.productKey, p.bulkLength || 0)
+      if (p.isBulk) oldBulk.set(p.productKey, p.bulkLength || 0);
     }
-
     if (Array.isArray(products)) {
       lot.products = products.map((p, idx) => ({
         productKey:     p.productKey || `${Date.now()}-${idx}`,
@@ -212,16 +187,13 @@ export const updateLot = async (req, res) => {
         itemsAddedCount:  p.itemsAddedCount  || 0,
         itemsAddedWeight: p.itemsAddedWeight || 0,
         completed:        !!p.completed,
-      }))
+      }));
     }
-
-    await lot.save()
-
-    // reconcile bulk IN transactions
+    await lot.save();
     for (const p of lot.products) {
-      if (!p.isBulk) continue
-      const oldVal = oldBulk.get(p.productKey) || 0
-      const delta  = (p.bulkLength || 0) - oldVal
+      if (!p.isBulk) continue;
+      const oldVal = oldBulk.get(p.productKey) || 0;
+      const delta  = (p.bulkLength || 0) - oldVal;
       if (delta !== 0) {
         await applyBulkAdjustment({
           productName:    p.productName,
@@ -232,93 +204,76 @@ export const updateLot = async (req, res) => {
           lotNumber,
           supplierName:   p.supplierName,
           note:           'LOT edit',
-        })
+        });
       }
     }
-
-    res.json({ success: true, data: lot })
+    res.json({ success: true, data: lot });
   } catch (err) {
-    console.log(err)
-    res.status(500).json({ success: false, message: err.message })
+    console.log(err);
+    res.status(500).json({ success: false, message: err.message });
   }
-}
+};
 
-// DELETE /api/lots/:lotNumber  — delete LOT + all its items (reversible step 1)
 export const deleteLot = async (req, res) => {
   try {
-    const lotNumber = Number(req.params.lotNumber)
-    const lot = await Lot.findOne({ lotNumber })
-    if (!lot) return res.status(404).json({ success: false, message: 'Lot not found' })
-
-    // reverse bulk transactions linked to this LOT
+    const lotNumber = Number(req.params.lotNumber);
+    const lot = await Lot.findOne({ lotNumber });
+    if (!lot) return res.status(404).json({ success: false, message: 'Lot not found' });
     await BulkStock.updateMany(
       { 'transactions.lotNumber': lotNumber },
       { $pull: { transactions: { lotNumber } } }
-    )
-    // recompute bulk totals after pulling
-    const stocks = await BulkStock.find({})
+    );
+    const stocks = await BulkStock.find({});
     for (const s of stocks) {
-      let tIn = 0, tOut = 0
+      let tIn = 0, tOut = 0;
       for (const t of s.transactions) {
-        if (t.type === 'IN') tIn += t.quantity
-        else if (t.type === 'OUT') tOut += t.quantity
-        else if (t.type === 'ADJUST') tIn += t.quantity // positive/negative
+        if (t.type === 'IN') tIn += t.quantity;
+        else if (t.type === 'OUT') tOut += t.quantity;
+        else if (t.type === 'ADJUST') tIn += t.quantity;
       }
-      s.totalIn  = tIn
-      s.totalOut = tOut
-      s.balance  = tIn - tOut
-      await s.save()
+      s.totalIn  = tIn;
+      s.totalOut = tOut;
+      s.balance  = tIn - tOut;
+      await s.save();
     }
-
-    await Inventory.deleteMany({ lotNumber })
-    await Lot.deleteOne({ lotNumber })
-
-    res.json({ success: true, message: `Lot ${lotNumber} and all items deleted` })
+    await Inventory.deleteMany({ lotNumber });
+    await Lot.deleteOne({ lotNumber });
+    res.json({ success: true, message: `Lot ${lotNumber} and all items deleted` });
   } catch (err) {
-    res.status(500).json({ success: false, message: err.message })
+    res.status(500).json({ success: false, message: err.message });
   }
-}
+};
 
-// POST /api/lots/:lotNumber/products/:productKey/items
-// body: { size?, netWt, purity?, makingCharge?, pureRate? }
 export const addItemToLotProduct = async (req, res) => {
   try {
-    const lotNumber  = Number(req.params.lotNumber)
-    const productKey = req.params.productKey
-
-    const lot = await Lot.findOne({ lotNumber })
-    if (!lot) return res.status(404).json({ success: false, message: 'Lot not found' })
-
-    const lp = lot.products.find(p => p.productKey === productKey)
-    if (!lp) return res.status(404).json({ success: false, message: 'Product line not found in lot' })
-
+    const lotNumber  = Number(req.params.lotNumber);
+    const productKey = req.params.productKey;
+    const lot = await Lot.findOne({ lotNumber });
+    if (!lot) return res.status(404).json({ success: false, message: 'Lot not found' });
+    const lp = lot.products.find(p => p.productKey === productKey);
+    if (!lp) return res.status(404).json({ success: false, message: 'Product line not found' });
     if (lp.isBulk) {
       return res.status(400).json({
         success: false,
         message: 'This is a bulk product — items cannot be tagged individually',
-      })
+      });
     }
-
-    const { size, netWt, makingCharge, pureRate, purity } = req.body
-
+    const { size, netWt, makingCharge, pureRate, purity } = req.body;
     if (!lp.productId) {
       return res.status(400).json({
         success: false,
         message: 'Product line is missing productId — required for barcode',
-      })
+      });
     }
-
     if (!lp.prefix) {
       return res.status(400).json({
         success: false,
         message: 'Product line is missing prefix (abbreviation) — required for barcode',
-      })
+      });
     }
-
-    // Barcode = productId + PREFIX + globalSerial  e.g. 123ABC459
-    const serial  = await nextSerialFor(lp.productId, lp.prefix)
-    const barcode = `${lp.productId}${lp.prefix}${serial}`
-
+    // ✅ atomic serial generation
+    const serial  = await Counter.nextSerial(lp.productId, lp.prefix);
+    const barcode = `${lp.productId}${lp.prefix}${serial}`;
     const item = await Inventory.create({
       recordDate:     new Date(),
       recordTime:     new Date().toLocaleTimeString('en-US'),
@@ -337,13 +292,10 @@ export const addItemToLotProduct = async (req, res) => {
       prefix:         lp.prefix,
       serialNo:       serial,
       supplierName:   lp.supplierName || '',
-    })
-
-    // update lot product counters
-    lp.itemsAddedCount  = (lp.itemsAddedCount  || 0) + 1
-    lp.itemsAddedWeight = (lp.itemsAddedWeight || 0) + (Number(netWt) || 0)
-    await lot.save()
-
+    });
+    lp.itemsAddedCount  = (lp.itemsAddedCount  || 0) + 1;
+    lp.itemsAddedWeight = (lp.itemsAddedWeight || 0) + (Number(netWt) || 0);
+    await lot.save();
     res.json({
       success: true,
       data: item,
@@ -354,29 +306,23 @@ export const addItemToLotProduct = async (req, res) => {
         expectedCount: lp.quantity,
         expectedWeight:lp.totalWeight,
       }
-    })
+    });
   } catch (err) {
-    console.log(err)
-    res.status(500).json({ success: false, message: err.message })
+    console.log(err);
+    res.status(500).json({ success: false, message: err.message });
   }
-}
+};
 
-// PUT /api/inventory/:id  → handled in inventoryController (we'll add it)
-// DELETE /api/inventory/:id → handled in inventoryController (we'll add it)
-
-// GET /api/lots/:lotNumber/summary  → wt difference per product
 export const getLotSummary = async (req, res) => {
   try {
-    const lotNumber = Number(req.params.lotNumber)
-    const lot = await Lot.findOne({ lotNumber })
-    if (!lot) return res.status(404).json({ success: false, message: 'Lot not found' })
-
-    const items = await Inventory.find({ lotNumber })
-
+    const lotNumber = Number(req.params.lotNumber);
+    const lot = await Lot.findOne({ lotNumber });
+    if (!lot) return res.status(404).json({ success: false, message: 'Lot not found' });
+    const items = await Inventory.find({ lotNumber });
     const summary = lot.products.map(p => {
-      const productItems = items.filter(i => i.productKey === p.productKey)
-      const addedCount = productItems.length
-      const addedWt    = productItems.reduce((s, i) => s + (i.netWt || 0), 0)
+      const productItems = items.filter(i => i.productKey === p.productKey);
+      const addedCount = productItems.length;
+      const addedWt    = productItems.reduce((s, i) => s + (i.netWt || 0), 0);
       return {
         productKey:    p.productKey,
         productName:   p.productName,
@@ -389,77 +335,39 @@ export const getLotSummary = async (req, res) => {
         addedWeight:    Number(addedWt.toFixed(3)),
         weightDiff:     Number((addedWt - (p.totalWeight || 0)).toFixed(3)),
         completed:      p.completed,
-      }
-    })
-
-    res.json({ success: true, lotNumber, summary })
+      };
+    });
+    res.json({ success: true, lotNumber, summary });
   } catch (err) {
-    res.status(500).json({ success: false, message: err.message })
+    res.status(500).json({ success: false, message: err.message });
   }
-}
+};
 
-// POST /api/lots/:lotNumber/products/:productKey/complete
 export const markProductCompleted = async (req, res) => {
   try {
-    const lotNumber  = Number(req.params.lotNumber)
-    const productKey = req.params.productKey
-    const lot = await Lot.findOne({ lotNumber })
-    if (!lot) return res.status(404).json({ success: false, message: 'Lot not found' })
-    const lp = lot.products.find(p => p.productKey === productKey)
-    if (!lp) return res.status(404).json({ success: false, message: 'Product line not found' })
-    lp.completed = !!req.body.completed
-    await lot.save()
-    res.json({ success: true, data: lot })
+    const lotNumber  = Number(req.params.lotNumber);
+    const productKey = req.params.productKey;
+    const lot = await Lot.findOne({ lotNumber });
+    if (!lot) return res.status(404).json({ success: false, message: 'Lot not found' });
+    const lp = lot.products.find(p => p.productKey === productKey);
+    if (!lp) return res.status(404).json({ success: false, message: 'Product line not found' });
+    lp.completed = !!req.body.completed;
+    await lot.save();
+    res.json({ success: true, data: lot });
   } catch (err) {
-    res.status(500).json({ success: false, message: err.message })
+    res.status(500).json({ success: false, message: err.message });
   }
-}
+};
 
-// POST /api/lots/:lotNumber/finalize
 export const finalizeLot = async (req, res) => {
   try {
-    const lotNumber = Number(req.params.lotNumber)
-    const lot = await Lot.findOne({ lotNumber })
-    if (!lot) return res.status(404).json({ success: false, message: 'Lot not found' })
-    lot.status = 'finalized'
-    await lot.save()
-    res.json({ success: true, data: lot })
+    const lotNumber = Number(req.params.lotNumber);
+    const lot = await Lot.findOne({ lotNumber });
+    if (!lot) return res.status(404).json({ success: false, message: 'Lot not found' });
+    lot.status = 'finalized';
+    await lot.save();
+    res.json({ success: true, data: lot });
   } catch (err) {
-    res.status(500).json({ success: false, message: err.message })
+    res.status(500).json({ success: false, message: err.message });
   }
-}
-
-// ─── internal helpers for bulk stock ───────────────────────────────────────
-
-async function upsertBulkIn({ productName, subProductName, purity, unit, quantity, lotNumber, supplierName }) {
-  let s = await BulkStock.findOne({ productName, subProductName: subProductName || '', purity: purity || '' })
-  if (!s) {
-    s = await BulkStock.create({
-      productName, subProductName: subProductName || '', purity: purity || '',
-      unit: unit || 'm',
-    })
-  }
-  s.transactions.push({
-    type:'IN', quantity, unit: unit || 'm', lotNumber, supplierName: supplierName || '', note: 'LOT receipt'
-  })
-  s.totalIn += quantity
-  s.balance = s.totalIn - s.totalOut
-  await s.save()
-}
-
-async function applyBulkAdjustment({ productName, subProductName, purity, unit, quantity, lotNumber, supplierName, note }) {
-  let s = await BulkStock.findOne({ productName, subProductName: subProductName || '', purity: purity || '' })
-  if (!s) {
-    s = await BulkStock.create({
-      productName, subProductName: subProductName || '', purity: purity || '',
-      unit: unit || 'm',
-    })
-  }
-  s.transactions.push({
-    type:'ADJUST', quantity, unit: unit || 'm', lotNumber, supplierName: supplierName || '', note: note || 'adjust'
-  })
-  if (quantity > 0) s.totalIn  += quantity
-  else              s.totalOut += -quantity
-  s.balance = s.totalIn - s.totalOut
-  await s.save()
-}
+};

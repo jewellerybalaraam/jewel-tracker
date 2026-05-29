@@ -1,4 +1,4 @@
-import mongoose from 'mongoose'
+import mongoose from 'mongoose';
 
 const barcodeItemSchema = new mongoose.Schema({
   barcode:        { type: String, required: true },
@@ -15,7 +15,7 @@ const barcodeItemSchema = new mongoose.Schema({
   soldAt:         { type: Date,   default: null },
   returnedAt:     { type: Date,   default: null },
   billId:         { type: mongoose.Schema.Types.ObjectId, ref: 'Bill', default: null },
-})
+});
 
 const eerettuSchema = new mongoose.Schema(
   {
@@ -43,6 +43,10 @@ const eerettuSchema = new mongoose.Schema(
     },
   },
   { timestamps: true }
-)
+);
 
-export default mongoose.model('Eerettu', eerettuSchema)
+eerettuSchema.index({ clientName: 1, date: -1 });
+eerettuSchema.index({ "items.barcode": 1 });
+eerettuSchema.index({ "wtMode.status": 1 });
+
+export default mongoose.model('Eerettu', eerettuSchema);

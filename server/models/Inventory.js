@@ -1,83 +1,29 @@
-import mongoose from 'mongoose'
+import mongoose from 'mongoose';
 
 const inventorySchema = new mongoose.Schema(
   {
-    // ── Tagging metadata ──────────────────────────────────────
-    recordDate: {
-      type:    Date,
-      default: null          // RECDATE — date the item was tagged
-    },
-
-    recordTime: {
-      type:    String,
-      default: ''            // TIME — e.g. "4:20AM"
-    },
-
-    // ── Item identity ─────────────────────────────────────────
-    barcode: {
-      type:     String,
-      required: true,
-      unique:   true,
-      index:    true         // ITEMTAG — the physical tag barcode
-    },
-
-    productId: {
-      type:     Number,
-      required: true         // PROID — numeric product category code
-    },
-
-    productName: {
-      type:    String,
-      default: ''            // PRODUCTNAME
-    },
-
-    subProductName: {
-      type:    String,
-      default: ''            // SUBPRODUCTNAME
-    },
-
-    // ── Weight & size ─────────────────────────────────────────
-    netWt: {
-      type:    Number,
-      default: 0             // NETWT — net weight in grams
-    },
-
-    size: {
-      type:    String,
-      default: ''            // SIZE — optional (ring size etc.)
-    },
-
-    // ── Pricing ───────────────────────────────────────────────
-    makingCharge: {
-      type:    Number,
-      default: 0             // MC — making charge per gram
-    },
-
-    pureRate: {
-      type:    Number,
-      default: 0             // PURERATE
-    },
-
-    purity: {
-      type:    String,
-      default: ''            // TAGTYPE — e.g. "SLM", "95", "92.5", "65", "99"
-    },
-
-    // ── Stock status ──────────────────────────────────────────
-    status: {
-      type:    String,
-      enum:    ['AVAILABLE', 'SOLD'],
-      default: 'AVAILABLE'
-    },
-
-    // ── LOT linkage (new) ─────────────────────────────────────
-    lotNumber:    { type: Number, default: null, index: true }, // 123
-    productKey:   { type: String, default: '' },                // links to Lot.products[].productKey
-    serialNo:     { type: Number, default: 0 },                 // 119 (s.no in ABC of LOT 123)
-    prefix:       { type: String, default: '' },                // ABC
-    supplierName: { type: String, default: '' },
+    recordDate:      { type: Date, default: null },
+    recordTime:      { type: String, default: '' },
+    barcode:         { type: String, required: true, unique: true, index: true },
+    productId:       { type: Number, required: true },
+    productName:     { type: String, default: '' },
+    subProductName:  { type: String, default: '' },
+    netWt:           { type: Number, default: 0 },
+    size:            { type: String, default: '' },
+    makingCharge:    { type: Number, default: 0 },
+    pureRate:        { type: Number, default: 0 },
+    purity:          { type: String, default: '' },
+    status:          { type: String, enum: ['AVAILABLE', 'SOLD'], default: 'AVAILABLE' },
+    lotNumber:       { type: Number, default: null, index: true },
+    productKey:      { type: String, default: '' },
+    serialNo:        { type: Number, default: 0 },
+    prefix:          { type: String, default: '' },
+    supplierName:    { type: String, default: '' },
   },
   { timestamps: true }
-)
+);
 
-export default mongoose.model('Inventory', inventorySchema)
+inventorySchema.index({ productName: 1, subProductName: 1 });
+inventorySchema.index({ status: 1 });
+
+export default mongoose.model('Inventory', inventorySchema);
