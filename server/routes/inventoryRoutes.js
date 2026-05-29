@@ -10,9 +10,13 @@ import {
   listInventoryByLot,
   updateInventoryItem,
   deleteInventoryItem,
+  searchInventory,
 } from '../controllers/inventoryController.js'
 
 const router = express.Router()
+
+// search
+router.get('/search', searchInventory)
 
 // upload excel
 router.post('/upload', upload.single('file'), uploadInventory)

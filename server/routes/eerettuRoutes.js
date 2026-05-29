@@ -10,6 +10,7 @@ import {
   getPendingClientsList,
   getSoldClientsList,
   getByClient,
+  addDirectSale,
 } from '../controllers/eerettuController.js'
 
 const router = express.Router()
@@ -21,6 +22,7 @@ router.get('/sold-clients',          getSoldClientsList)
 router.get('/by-client/:clientName', getByClient)
 router.post('/',                     createEerettu)
 router.post('/bulk-status',          bulkUpdateStatus)
+router.post('/add-direct-sale',      addDirectSale)
 router.patch('/:id/date',            updateDate)
 router.patch('/:id/item',            updateItemStatus)
 router.patch('/:id/wt',              updateWtStatus)

@@ -1,4 +1,5 @@
 import Eerettu from '../models/Eerettu.js'
+import Inventory from '../models/Inventory.js'
 
 export const createEerettu = async (req, res) => {
   try {
@@ -404,6 +405,79 @@ export const getByClient = async (req, res) => {
       clientName: { $regex: `^${clientName}$`, $options: 'i' },
     }).sort({ date: -1 })
     res.json(eerettus)
+  } catch (error) {
+    console.log(error)
+    res.status(500).json({ message: error.message })
+  }
+}
+// =====================================
+// ADD INVENTORY ITEM DIRECTLY TO SOLD
+// =====================================
+export const addDirectSale = async (req, res) => {
+  try {
+    const {
+      clientName,
+      barcode,
+      pureDue    = 0,
+      cashDue    = 0,
+      billBookNo = '',
+      billPageNo = '',
+      soldAt,
+    } = req.body
+
+    if (!clientName || !barcode) {
+      return res.status(400).json({ message: 'clientName and barcode are required' })
+    }
+
+    // Find inventory item
+    const invItem = await Inventory.findOne({ barcode })
+    if (!invItem) {
+      return res.status(404).json({ message: `Inventory item not found: ${barcode}` })
+    }
+
+    // Check if this barcode is SOLD in any eerettu
+    const existing = await Eerettu.findOne({
+      'items.barcode': barcode,
+      'items.status':  'SOLD',
+    })
+
+    if (existing) {
+      if (existing.clientName !== clientName) {
+        return res.status(400).json({
+          message: `This item is already sold to "${existing.clientName}" — it cannot be added to another client.`,
+        })
+      }
+      // Already in this client's sold section → idempotent success
+      return res.json({ success: true, alreadyExists: true })
+    }
+
+    // Create a new eerettu entry with the item pre-marked SOLD
+    const eerettu = await Eerettu.create({
+      clientName,
+      roughProductName: invItem.productName || barcode,
+      date:  new Date(),
+      mode:  'barcode',
+      items: [{
+        barcode:        invItem.barcode,
+        wt:             invItem.netWt    || 0,
+        size:           invItem.size     || '',
+        productName:    invItem.productName    || '',
+        subProductName: invItem.subProductName || '',
+        purity:         invItem.purity   || '',
+        status:         'SOLD',
+        pureDue:        parseFloat(pureDue)  || 0,
+        cashDue:        parseFloat(cashDue)  || 0,
+        billBookNo,
+        billPageNo,
+        soldAt:         soldAt ? new Date(soldAt) : new Date(),
+      }],
+    })
+
+    // Mark inventory item as SOLD
+    invItem.status = 'SOLD'
+    await invItem.save()
+
+    res.json({ success: true, eerettu })
   } catch (error) {
     console.log(error)
     res.status(500).json({ message: error.message })

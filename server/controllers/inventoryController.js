@@ -2,6 +2,7 @@ import XLSX from 'xlsx'
 import fs   from 'fs'
 import Inventory from '../models/Inventory.js'
 import Lot from '../models/Lot.js'
+import Eerettu from '../models/Eerettu.js'
 
 
 // ── helpers ────────────────────────────────────────────────────────────────
@@ -205,6 +206,59 @@ export const deleteInventoryItem = async (req, res) => {
     await recomputeLotProgress(lotNumber)
     res.json({ success: true })
   } catch (error) {
+    res.status(500).json({ success: false, message: error.message })
+  }
+}
+
+// =====================================
+// SEARCH INVENTORY — returns AVAILABLE + SOLD with client info
+// =====================================
+export const searchInventory = async (req, res) => {
+  try {
+    const q = String(req.query.q || '').trim()
+    if (!q) return res.json({ success: true, data: [] })
+
+    const items = await Inventory.find({
+      $or: [
+        { barcode:        { $regex: q, $options: 'i' } },
+        { productName:    { $regex: q, $options: 'i' } },
+        { subProductName: { $regex: q, $options: 'i' } },
+      ],
+    }).limit(40).lean()
+
+    // For SOLD items, find which client (if any) they're recorded under in eerettu
+    const soldBarcodes = items.filter(i => i.status === 'SOLD').map(i => i.barcode)
+    const eerettusWithSold = soldBarcodes.length
+      ? await Eerettu.find(
+          { 'items.barcode': { $in: soldBarcodes }, 'items.status': 'SOLD' }
+        ).select('clientName items').lean()
+      : []
+
+    const clientMap = {}
+    for (const e of eerettusWithSold) {
+      for (const it of e.items || []) {
+        if (it.status === 'SOLD' && soldBarcodes.includes(it.barcode)) {
+          clientMap[it.barcode] = e.clientName
+        }
+      }
+    }
+
+    const data = items.map(i => ({
+      _id:            i._id,
+      barcode:        i.barcode,
+      productName:    i.productName,
+      subProductName: i.subProductName,
+      netWt:          i.netWt,
+      size:           i.size,
+      purity:         i.purity,
+      makingCharge:   i.makingCharge,
+      status:         i.status,
+      soldToClient:   clientMap[i.barcode] || null,
+    }))
+
+    res.json({ success: true, data })
+  } catch (error) {
+    console.log(error)
     res.status(500).json({ success: false, message: error.message })
   }
 }

@@ -411,11 +411,199 @@ function QuickScanPanel({ pendingRows, onBulk, onMarkAll }) {
   )
 }
 
-function StatusTab({ allRows, status, tab, onUpdate, onBulk, checkoutSet, toggleCheckout }) {
+// ── AddToSoldModal ────────────────────────────────────────────
+function AddToSoldModal({ open, onClose, clientName, onAdded }) {
+  const [query,   setQuery]   = useState('')
+  const [results, setResults] = useState([])
+  const [loading, setLoading] = useState(false)
+  const [selected, setSelected] = useState(null)
+  const [saving,   setSaving]   = useState(false)
+  const [error,    setError]    = useState('')
+
+  // form fields for the selected item
+  const [pureDue,    setPureDue]    = useState('')
+  const [cashDue,    setCashDue]    = useState('')
+  const [billBookNo, setBillBookNo] = useState('')
+  const [billPageNo, setBillPageNo] = useState('')
+  const [soldAt,     setSoldAt]     = useState(toLocalInput(new Date()))
+
+  const debounceRef = useRef(null)
+
+  useEffect(() => {
+    if (!open) { setQuery(''); setResults([]); setSelected(null); setError('') }
+  }, [open])
+
+  const handleSearch = (val) => {
+    setQuery(val)
+    clearTimeout(debounceRef.current)
+    if (!val.trim()) { setResults([]); return }
+    debounceRef.current = setTimeout(async () => {
+      setLoading(true)
+      try {
+        const res = await axios.get(`${API}/api/inventory/search?q=${encodeURIComponent(val.trim())}`)
+        setResults(res.data.data || [])
+      } catch { setResults([]) }
+      finally { setLoading(false) }
+    }, 300)
+  }
+
+  const handleConfirm = async () => {
+    if (!selected) return
+    setSaving(true); setError('')
+    try {
+      await axios.post(`${API}/api/eerettu/add-direct-sale`, {
+        clientName,
+        barcode:    selected.barcode,
+        pureDue:    parseFloat(pureDue)  || 0,
+        cashDue:    parseFloat(cashDue)  || 0,
+        billBookNo, billPageNo,
+        soldAt:     new Date(soldAt).toISOString(),
+      })
+      onAdded()
+      onClose()
+    } catch (e) {
+      setError(e.response?.data?.message || 'Failed to add item')
+    } finally { setSaving(false) }
+  }
+
+  if (!open) return null
+
+  const inp = 'w-full p-2.5 rounded-xl bg-white/10 border border-white/10 focus:border-pink-400 outline-none text-white text-sm'
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4">
+      <div className="w-full max-w-lg bg-[#1a1a2e] border border-white/10 rounded-3xl p-6 space-y-4 max-h-[90vh] flex flex-col">
+        <div className="flex items-center justify-between">
+          <h3 className="text-xl font-black text-pink-300">Add Item to Sold</h3>
+          <button onClick={onClose} className="text-gray-400 hover:text-white text-xl">✕</button>
+        </div>
+
+        {/* Search */}
+        <div className="relative">
+          <input
+            autoFocus
+            className={inp}
+            placeholder="Search by barcode or product name…"
+            value={query}
+            onChange={e => { setSelected(null); handleSearch(e.target.value) }}
+          />
+          {loading && <span className="absolute right-3 top-1/2 -translate-y-1/2 text-yellow-400 text-xs animate-pulse">…</span>}
+        </div>
+
+        {/* Results */}
+        {!selected && results.length > 0 && (
+          <div className="overflow-y-auto flex-1 space-y-1.5 min-h-0">
+            {results.map(item => {
+              const isThisClient  = item.soldToClient === clientName
+              const isOtherClient = item.status === 'SOLD' && item.soldToClient && item.soldToClient !== clientName
+              return (
+                <button
+                  key={item._id}
+                  disabled={isOtherClient}
+                  onClick={() => {
+                    if (isOtherClient) return
+                    setSelected(item)
+                    setPureDue(''); setCashDue(''); setBillBookNo(''); setBillPageNo('')
+                    setSoldAt(toLocalInput(new Date()))
+                    setError('')
+                  }}
+                  className={`w-full text-left px-4 py-3 rounded-2xl border transition-all
+                    ${isOtherClient
+                      ? 'border-red-500/20 bg-red-500/5 opacity-50 cursor-not-allowed'
+                      : isThisClient
+                        ? 'border-green-500/30 bg-green-500/10 cursor-default'
+                        : 'border-white/10 bg-white/5 hover:bg-white/10 hover:border-pink-500/40'}`}
+                >
+                  <div className="flex items-center justify-between gap-2 flex-wrap">
+                    <div>
+                      <p className="font-bold text-white text-sm">{item.barcode}</p>
+                      <p className="text-xs text-gray-400">{item.productName}{item.subProductName ? ` · ${item.subProductName}` : ''}</p>
+                    </div>
+                    <div className="flex items-center gap-2 flex-wrap text-xs">
+                      {item.netWt > 0 && <span className="bg-white/10 px-2 py-0.5 rounded-lg text-gray-300">{item.netWt} g</span>}
+                      {item.purity   && <span className="bg-orange-500/20 text-orange-300 px-2 py-0.5 rounded-lg">{item.purity}</span>}
+                      {item.size     && <span className="bg-white/10 text-gray-300 px-2 py-0.5 rounded-lg">Size {item.size}</span>}
+                      {item.status === 'AVAILABLE'
+                        ? <span className="bg-green-500/20 text-green-300 border border-green-500/30 px-2 py-0.5 rounded-lg font-bold">AVAILABLE</span>
+                        : isThisClient
+                          ? <span className="bg-blue-500/20 text-blue-300 border border-blue-500/30 px-2 py-0.5 rounded-lg font-bold">Already here</span>
+                          : <span className="bg-red-500/20 text-red-300 border border-red-500/30 px-2 py-0.5 rounded-lg font-bold">SOLD → {item.soldToClient}</span>
+                      }
+                    </div>
+                  </div>
+                </button>
+              )
+            })}
+          </div>
+        )}
+
+        {!selected && results.length === 0 && query.trim() && !loading && (
+          <p className="text-center text-gray-500 text-sm py-4">No items found</p>
+        )}
+
+        {/* Selected item — confirm form */}
+        {selected && (
+          <div className="space-y-3 overflow-y-auto flex-1 min-h-0">
+            <div className="bg-white/5 border border-pink-500/30 rounded-2xl p-3">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="font-black text-white">{selected.barcode}</p>
+                  <p className="text-xs text-gray-400">{selected.productName}</p>
+                </div>
+                <button onClick={() => setSelected(null)} className="text-xs text-gray-400 hover:text-white px-2 py-1 bg-white/10 rounded-lg">← Back</button>
+              </div>
+              <div className="flex flex-wrap gap-2 mt-2 text-xs">
+                {selected.netWt > 0 && <span className="bg-white/10 px-2 py-0.5 rounded-lg text-gray-300">{selected.netWt} g</span>}
+                {selected.purity    && <span className="bg-orange-500/20 text-orange-300 px-2 py-0.5 rounded-lg">{selected.purity}</span>}
+                {selected.size      && <span className="bg-white/10 text-gray-300 px-2 py-0.5 rounded-lg">Size {selected.size}</span>}
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="text-xs text-gray-400 mb-1 block">Sold at</label>
+                <input type="datetime-local" className={inp} value={soldAt} onChange={e => setSoldAt(e.target.value)} />
+              </div>
+              <div>
+                <label className="text-xs text-gray-400 mb-1 block">Pure due (g)</label>
+                <input type="number" className={inp} placeholder="0" value={pureDue} onChange={e => setPureDue(e.target.value)} />
+              </div>
+              <div>
+                <label className="text-xs text-gray-400 mb-1 block">Cash due (₹)</label>
+                <input type="number" className={inp} placeholder="0" value={cashDue} onChange={e => setCashDue(e.target.value)} />
+              </div>
+              <div>
+                <label className="text-xs text-gray-400 mb-1 block">Bill book</label>
+                <input className={inp} placeholder="Book no" value={billBookNo} onChange={e => setBillBookNo(e.target.value)} />
+              </div>
+              <div>
+                <label className="text-xs text-gray-400 mb-1 block">Bill page</label>
+                <input className={inp} placeholder="Page no" value={billPageNo} onChange={e => setBillPageNo(e.target.value)} />
+              </div>
+            </div>
+
+            {error && <p className="text-red-400 text-sm bg-red-500/10 border border-red-500/30 rounded-xl px-3 py-2">{error}</p>}
+
+            <button
+              onClick={handleConfirm}
+              disabled={saving}
+              className="w-full py-3 rounded-2xl font-black bg-gradient-to-r from-pink-500 to-purple-500 disabled:opacity-50"
+            >
+              {saving ? 'Adding…' : '✓ Add to Sold'}
+            </button>
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
+function StatusTab({ allRows, status, tab, onUpdate, onBulk, checkoutSet, toggleCheckout, clientName, onRefresh }) {
   const [search, setSearch] = useState('')
   const [fromDate, setFromDate] = useState('')
   const [toDate,   setToDate]   = useState('')
   const [sortBy,   setSortBy]   = useState('date_desc')
+  const [addModalOpen, setAddModalOpen] = useState(false)
   const rows = allRows.filter(r => r.status===status)
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase()
@@ -445,6 +633,22 @@ function StatusTab({ allRows, status, tab, onUpdate, onBulk, checkoutSet, toggle
     <div>
       {tab==='pending' && (
         <QuickScanPanel pendingRows={rows} onBulk={onBulk} onMarkAll={markAllPending} />
+      )}
+      {tab==='sold' && clientName && (
+        <>
+          <button
+            onClick={() => setAddModalOpen(true)}
+            className="mb-3 flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-pink-500 to-purple-500 text-white text-sm font-bold hover:opacity-90 transition-all"
+          >
+            + Add from Inventory
+          </button>
+          <AddToSoldModal
+            open={addModalOpen}
+            onClose={() => setAddModalOpen(false)}
+            clientName={clientName}
+            onAdded={() => { onRefresh && onRefresh() }}
+          />
+        </>
       )}
       <TabSearchBar search={search} setSearch={setSearch} fromDate={fromDate} setFromDate={setFromDate} toDate={toDate} setToDate={setToDate} sortBy={sortBy} setSortBy={setSortBy} />
       <div className="space-y-3">
@@ -1279,7 +1483,7 @@ export default function ClientPage() {
 
           {tab==='pending' && <StatusTab allRows={allRows} status="PENDING" tab="pending" onUpdate={onUpdateRow} onBulk={onBulkUpdate} checkoutSet={checkoutSet} toggleCheckout={toggleCheckout} />}
           {tab==='returned' && <StatusTab allRows={allRows} status="RETURNED" tab="returned" onUpdate={onUpdateRow} onBulk={onBulkUpdate} checkoutSet={checkoutSet} toggleCheckout={toggleCheckout} />}
-          {tab==='sold' && <StatusTab allRows={allRows} status="SOLD" tab="sold" onUpdate={onUpdateRow} onBulk={onBulkUpdate} checkoutSet={checkoutSet} toggleCheckout={toggleCheckout} />}
+          {tab==='sold' && <StatusTab allRows={allRows} status="SOLD" tab="sold" onUpdate={onUpdateRow} onBulk={onBulkUpdate} checkoutSet={checkoutSet} toggleCheckout={toggleCheckout} clientName={clientName} onRefresh={fetchAll} />}
           {tab==='wallet' && <WalletTab entries={walletEntries} onAdd={addWallet} onUpdate={updateWallet} onDelete={deleteWallet} checkoutSet={checkoutSet} toggleCheckout={toggleCheckout} />}
           {tab==='bills' && <BillsTab bills={bills} onAddPayment={addPayment} onDeletePayment={deletePayment} onDeleteBill={deleteBill} />}
         </div>
